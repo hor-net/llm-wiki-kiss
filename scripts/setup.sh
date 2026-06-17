@@ -69,6 +69,24 @@ else
   log_info "Ambiente virtuale esistente: ${VENV_DIR}"
 fi
 
+# Verifica che lo scaffold del venv sia completo: senza bin/activate
+# il venv è monco (es. python3-venv mancante su Debian/Ubuntu).
+if [[ ! -f "${VENV_DIR}/bin/activate" ]]; then
+  log_error "Venv creato senza bin/activate: scaffold incompleto."
+  log_error "Questo succede quando python3-venv (o python3.X-venv) non è"
+  log_error "installato sul sistema. Senza questo pacchetto, python3 -m venv"
+  log_error "crea un venv parziale senza script di attivazione."
+  log_error ""
+  log_error "Risolvi con (Debian/Ubuntu):"
+  log_error "  sudo apt update && sudo apt install -y python3-venv"
+  log_error "  # oppure per la versione specifica:"
+  log_error "  sudo apt install -y python3.11-venv"
+  log_error ""
+  log_error "Poi ricrea il venv:"
+  log_error "  ./scripts/setup.sh --recreate --bootstrap-pip --with-dev"
+  exit 1
+fi
+
 # ----------------------------------------------------------------------
 # Verifica / bootstrap di pip
 # ----------------------------------------------------------------------
