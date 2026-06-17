@@ -281,7 +281,7 @@ Issue e PR benvenuti. Linee guida:
 
 ## Licenza
 
-[MIT](./LICENSE) — Copyright (c) 2026 Saverio Vigni.
+[MIT](./LICENSE) — Copyright (c) 2026 Hornet SRL.
 
 ## Crediti
 
