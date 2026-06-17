@@ -67,8 +67,8 @@ if [[ "${WITH_DEV}" -eq 1 ]]; then
 fi
 
 log_step "Verifico l'installazione"
-"${VENV_PYTHON}" -c "import mcp, fastapi, uvicorn, pydantic; print('mcp', mcp.__version__)"
-"${VENV_PYTHON}" -c "import wiki_core, mcp_server, rest_api; print('moduli OK')"
+"${VENV_PYTHON}" -c "import mcp, fastapi, uvicorn, pydantic; print('mcp, fastapi, uvicorn, pydantic importati')"
+"${VENV_PYTHON}" -c "import wiki_core, mcp_server, mcp_server.http, rest_api; print('moduli applicativi OK')"
 
 log_ok "Setup completato."
 log_info "Attiva il venv con: source ${VENV_DIR}/bin/activate"
