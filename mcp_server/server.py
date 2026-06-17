@@ -24,9 +24,6 @@ from mcp.server import Server
 from mcp.shared.exceptions import McpError
 
 from wiki_core import (
-    InvalidPathError,
-    PageAlreadyExistsError,
-    PageNotFoundError,
     WikiStorage,
     WikiStorageError,
 )

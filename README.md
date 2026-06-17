@@ -43,8 +43,10 @@ notebook, in conversazioni che si perdono. Questo progetto offre una
 ## Caratteristiche
 
 - **Storage filesystem**: una cartella con file Markdown e link relativi.
-- **Server MCP** con cinque tool: `list_pages`, `read_page`, `search`,
-  `write_page`, `append_note`.
+- **Server MCP stdio** con cinque tool: `list_pages`, `read_page`,
+  `search`, `write_page`, `append_note`.
+- **Server MCP Streamable HTTP** (MCP 2025) per client cloud con
+  autenticazione Bearer.
 - **API REST** FastAPI specchio dei tool MCP, con OpenAPI su `/docs`.
 - **Sicurezza base**: validazione percorsi (no `..`, no NUL), limite 2 MiB
   per pagina, scope limitato alla root del wiki.
@@ -60,10 +62,10 @@ llm-wiki-kiss/
 │   ├── index.md
 │   ├── projects/  notes/  decisions/  references/  assets/  logs/
 ├── wiki_core/             # logica filesystem (WikiStorage, validazione, search)
-├── mcp_server/            # server MCP stdio (5 tool)
+├── mcp_server/            # server MCP stdio + Streamable HTTP (5 tool)
 ├── rest_api.py            # fallback HTTP FastAPI
 ├── scripts/               # wrapper shell (setup, start, stop, status, deploy)
-├── tests/                 # pytest + smoke test MCP via stdio
+├── tests/                 # pytest + smoke test MCP via stdio e HTTP
 ├── .trae/skills/          # SKILL.md per agenti AI
 ├── pyproject.toml, requirements*.txt, .env.example, .gitignore
 ├── LICENSE                # MIT
@@ -151,6 +153,35 @@ Tutti i percorsi sono **relativi** alla root del wiki e separati da `/`.
 | POST   | `/notes`                     | Append nota (default log giornaliero) |
 | GET    | `/docs`                      | OpenAPI interattivo (Swagger UI)  |
 
+## MCP Streamable HTTP (per client cloud)
+
+Il server MCP è esposto anche via HTTPS con il nuovo trasporto
+**Streamable HTTP** (MCP 2025-06-18), così client MCP-aware in cloud
+(Open Cloud aggiornato, ecc.) possono usarlo senza lanciare un
+sottoprocesso.
+
+```bash
+# Avvio con autenticazione Bearer
+WIKI_MCP_TOKEN='segreto-casuale-lungo' \
+    scripts/start-mcp-http.sh --host 127.0.0.1 --port 8766
+```
+
+Il client si connette a `http://127.0.0.1:8766/mcp` con:
+
+```
+POST /mcp
+Authorization: Bearer segreto-casuale-lungo
+Accept: application/json, text/event-stream
+Content-Type: application/json
+
+{"jsonrpc":"2.0","id":1,"method":"tools/list"}
+```
+
+Esponi su HTTPS pubblico con un reverse proxy (Apache, nginx, Caddy) e
+Let's Encrypt. Lo script `scripts/start-mcp-http.sh` accetta
+`--stateless`/`--stateful` e `--json-response`/`--no-json-response` per
+modulare il comportamento.
+
 ## Configurazione del client MCP
 
 Esempio di frammento per Claude Code / Claude Desktop / Open Cloud /
@@ -204,13 +235,14 @@ Tutti accettano `--help`. I log vanno in `var/log/`, i PID in `var/run/`.
 | `scripts/setup.sh`                  | Crea/aggiorna venv e installa dipendenze.                   |
 | `scripts/setup.sh --with-dev`       | + pytest, ruff, httpx.                                      |
 | `scripts/setup.sh --recreate`       | Ricrea il venv da zero.                                     |
-| `scripts/start-mcp.sh`              | Avvia server MCP in foreground (per client MCP).            |
+| `scripts/start-mcp.sh`              | Avvia server MCP stdio (per client locali).                 |
+| `scripts/start-mcp-http.sh`         | Avvia server MCP Streamable HTTP (per client cloud).        |
 | `scripts/start-rest.sh`             | Avvia REST API in background.                               |
 | `scripts/start-rest.sh --foreground` | Avvia REST in foreground.                                   |
 | `scripts/start-rest.sh --reload`    | Modalità sviluppo con auto-reload.                          |
-| `scripts/stop.sh {mcp\|rest\|all}`  | Ferma uno o più servizi.                                    |
+| `scripts/stop.sh {mcp\|mcp-http\|rest\|all}` | Ferma uno o più servizi.                       |
 | `scripts/status.sh`                 | Mostra stato, PID, log.                                     |
-| `scripts/install-mcp-client.sh`     | Genera config MCP per i vari client.                        |
+| `scripts/install-mcp-client.sh`     | Genera config MCP stdio per i vari client.                  |
 | `scripts/run-tests.sh`              | Wrapper su `pytest` (accetta argomenti pytest).             |
 
 Variabili d'ambiente riconosciute: `WIKI_ROOT`, `WIKI_LOG_LEVEL`,
@@ -222,7 +254,8 @@ Variabili d'ambiente riconosciute: `WIKI_ROOT`, `WIKI_LOG_LEVEL`,
 ```bash
 scripts/run-tests.sh -q
 .venv/bin/python -m pytest -q
-.venv/bin/python tests/smoke_mcp.py   # smoke test del server MCP via stdio
+.venv/bin/python tests/smoke_mcp.py       # smoke test MCP stdio
+.venv/bin/python tests/smoke_mcp_http.py  # smoke test MCP Streamable HTTP
 .venv/bin/ruff check wiki_core mcp_server rest_api.py tests
 ```
 

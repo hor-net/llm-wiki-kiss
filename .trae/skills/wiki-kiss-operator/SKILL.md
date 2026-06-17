@@ -52,6 +52,23 @@ Lo script:
   `--with-dev`).
 - Verifica l'importazione dei moduli `wiki_core`, `mcp_server`, `rest_api`.
 
+## Trasporti disponibili
+
+Il progetto espone **tre trasporti** per parlare con i 5 tool MCP
+(`list_pages`, `read_page`, `search`, `write_page`, `append_note`):
+
+| Trasporto | Porta | Uso |
+| --- | --- | --- |
+| **stdio** | — | Client MCP locali (Claude Code, Claude Desktop, Open Cloud installato). Il client lancia il server come sottoprocesso. |
+| **Streamable HTTP** | 8766 (default) | Client MCP in cloud che supportano il protocollo MCP 2025. Autenticazione con Bearer token. |
+| **REST/HTTP** | 8765 (default) | Client HTTP generici (inclusi `claude.ai`, `perplexity.ai` via custom tool, script, browser). |
+
+### Quando usare quale
+
+- **Stdio**: agenti che girano sulla stessa macchina o via SSH/tunnel.
+- **Streamable HTTP**: agenti MCP-aware in cloud. È il futuro di MCP.
+- **REST**: client che non parlano MCP. Max compatibilità.
+
 ## Avvio e arresto dei servizi
 
 ### REST API (uvicorn)
@@ -90,12 +107,40 @@ sottoprocesso. Per test manuali:
 scripts/start-mcp.sh
 ```
 
-Variabili d'ambiente riconosciute:
+### Server MCP Streamable HTTP (per client cloud)
+
+Per esporre il server MCP via HTTPS, con autenticazione Bearer:
+
+```bash
+# Senza auth (solo sviluppo locale)
+scripts/start-mcp-http.sh --host 0.0.0.0 --port 8766
+
+# Con autenticazione Bearer (produzione)
+WIKI_MCP_TOKEN='segreto-lungo-casuale' \
+    scripts/start-mcp-http.sh --host 127.0.0.1 --port 8766
+```
+
+Il client MCP dovrà connettersi a `https://wiki.example.com/mcp` con
+header `Authorization: Bearer <token>`.
+
+Modalità disponibili:
+
+- `--stateless` (default): ogni richiesta è indipendente. Ideale per
+  client semplici.
+- `--stateful`: mantiene sessioni MCP tra richieste.
+- `--json-response` (default): risposte JSON pure.
+- `--no-json-response`: usa Server-Sent Events.
+
+### Variabili d'ambiente riconosciute
 
 | Variabile        | Default     | Effetto                          |
 | ---------------- | ----------- | -------------------------------- |
 | `WIKI_ROOT`      | `./wiki`    | Cartella del wiki                |
 | `WIKI_LOG_LEVEL` | `INFO`      | Livello di log Python            |
+| `WIKI_MCP_TOKEN` | (unset)     | Bearer token per /mcp HTTP       |
+| `WIKI_HTTP_HOST` | `127.0.0.1` | Host del server MCP HTTP         |
+| `WIKI_HTTP_PORT` | `8766`      | Porta del server MCP HTTP        |
+| `WIKI_MCP_PATH`  | `/mcp`      | Endpoint MCP                     |
 | `DEFAULT_HOST`   | `127.0.0.1` | Host REST (per `start-rest.sh`)  |
 | `DEFAULT_PORT`   | `8765`      | Porta REST (per `start-rest.sh`) |
 | `NO_COLOR`       | (unset)     | Disabilita colori nell'output    |
@@ -108,6 +153,7 @@ scripts/status.sh
 
 # Fermare uno o più servizi
 scripts/stop.sh mcp
+scripts/stop.sh mcp-http
 scripts/stop.sh rest
 scripts/stop.sh all
 ```
@@ -115,6 +161,8 @@ scripts/stop.sh all
 `var/run/*.pid` contiene i PID, `var/log/*.log` i log.
 
 ## Integrazione con i client MCP
+
+### Client locali (stdio)
 
 Per generare la configurazione MCP pronta da incollare:
 
@@ -152,10 +200,20 @@ Dove mettere il frammento:
 | Claude Code    | `.mcp.json` nella root del progetto (o globale `~/.claude.json`)     |
 | Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json`   |
 | Open Cloud     | sezione `mcpServers` nelle impostazioni del client                  |
-| Perplexity     | sezione MCP delle impostazioni del client (supporto MCP)             |
+| Perplexity     | sezione MCP delle impostazioni del client (dove supportato)         |
 
 Dopo aver salvato la configurazione, **riavviare il client** perché
 ricarichi l'elenco dei server MCP.
+
+### Client remoti (Streamable HTTP)
+
+Per Open Cloud aggiornato o altri client MCP-aware che supportano
+Streamable HTTP transport:
+
+- URL: `https://wiki.example.com/mcp`
+- Header: `Authorization: Bearer <token>`
+- Header: `Accept: application/json, text/event-stream` (gestito dal client)
+- Versione protocollo: `2025-06-18`
 
 ## Test e qualità
 
@@ -205,8 +263,11 @@ nel venv: `scripts/setup.sh --with-dev`.
 
 ## Operazioni frequenti
 
-- **Aggiungere un nuovo client**: `scripts/install-mcp-client.sh` e
+- **Aggiungere un nuovo client stdio**: `scripts/install-mcp-client.sh` e
   incolla la config.
+- **Aggiungere un nuovo client HTTP (cloud)**: condividi URL e token
+  Bearer. Il client si connette a `https://.../mcp` con
+  `Authorization: Bearer <token>`.
 - **Cambiare root del wiki**: sposta la cartella e imposta `WIKI_ROOT`
   nel file `.env` o `.wiki-kiss.env`.
 - **Backup**: `tar czf wiki-$(date +%F).tgz wiki/` (tutto è testo).
@@ -216,6 +277,6 @@ nel venv: `scripts/setup.sh --with-dev`.
 ## Filosofia operativa (KISS)
 
 - Niente database. Niente CMS. Versiona con Git.
-- Un solo servizio REST opzionale. Un solo server MCP.
+- Un solo servizio REST opzionale. Un server MCP stdio. Un server MCP HTTP opzionale.
 - I contenuti sono leggibili anche con `cat` o un editor Markdown.
 - Le decisioni importanti vanno in `wiki/decisions/` come ADR.

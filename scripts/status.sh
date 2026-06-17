@@ -31,8 +31,9 @@ printf "  wiki root:    %s\n" "$(detect_wiki_root)"
 printf "  venv:         %s\n" \
   "$( [[ -x "${VENV_PYTHON}" ]] && printf "%s" "${VENV_PYTHON}" || printf "(non trovato — esegui scripts/setup.sh)" )"
 echo
-print_status_line "mcp"  "Server MCP (stdio) per agenti AI"
-print_status_line "rest" "API REST fallback (uvicorn)"
+print_status_line "mcp"      "Server MCP (stdio) per agenti AI locali"
+print_status_line "mcp-http" "Server MCP Streamable HTTP (per client cloud)"
+print_status_line "rest"     "API REST fallback (uvicorn)"
 echo
 if [[ -d "${LOG_DIR}" ]]; then
   printf "%sLog recenti:%s\n" "${C_BOLD}" "${C_RESET}"

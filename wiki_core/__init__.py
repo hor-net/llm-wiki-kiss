@@ -6,13 +6,13 @@ esterne: deve restare utilizzabile anche senza il server MCP attivo.
 """
 
 from .storage import (
+    InvalidPathError,
+    PageAlreadyExistsError,
     PageInfo,
+    PageNotFoundError,
     SearchResult,
     WikiStorage,
     WikiStorageError,
-    PageNotFoundError,
-    PageAlreadyExistsError,
-    InvalidPathError,
 )
 
 __all__ = [

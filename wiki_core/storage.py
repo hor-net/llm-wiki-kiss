@@ -13,10 +13,10 @@ from __future__ import annotations
 import os
 import re
 import unicodedata
-from dataclasses import dataclass, field
+from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, List, Optional
 
 VALID_EXTENSIONS = {".md", ".markdown", ".html", ".htm"}
 MAX_PATH_PARTS = 32
@@ -122,7 +122,7 @@ class WikiStorage:
         return candidate
 
     @staticmethod
-    def _title_from_path(rel_path: str, content: Optional[str] = None) -> str:
+    def _title_from_path(rel_path: str, content: str | None = None) -> str:
         """Ricava un titolo leggibile dal percorso o dal contenuto."""
         if content is not None:
             for line in content.splitlines():
@@ -146,14 +146,14 @@ class WikiStorage:
     # API pubblica
     # ------------------------------------------------------------------
 
-    def list_pages(self, subdir: Optional[str] = None) -> List[PageInfo]:
+    def list_pages(self, subdir: str | None = None) -> list[PageInfo]:
         """Elenca tutte le pagine del wiki, opzionalmente in una sottocartella."""
         base = self.root
         if subdir:
             base = self._resolve(subdir)
             if not base.is_dir():
                 return []
-        results: List[PageInfo] = []
+        results: list[PageInfo] = []
         for path in sorted(base.rglob("*")):
             if not path.is_file():
                 continue
@@ -238,8 +238,8 @@ class WikiStorage:
     def append_note(
         self,
         content: str,
-        rel_path: Optional[str] = None,
-        heading: Optional[str] = None,
+        rel_path: str | None = None,
+        heading: str | None = None,
     ) -> PageInfo:
         """Aggiunge contenuto a una pagina esistente o ne crea una di log.
 
@@ -260,12 +260,9 @@ class WikiStorage:
             target = self._resolve(normalized)
 
         target.parent.mkdir(parents=True, exist_ok=True)
-        if not target.exists():
-            header = f"# {self._title_from_path(normalized)}\n\n"
-        else:
-            header = ""
+        header = "" if target.exists() else f"# {self._title_from_path(normalized)}\n\n"
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        block_parts: List[str] = []
+        block_parts: list[str] = []
         if heading:
             block_parts.append(f"## {heading.strip()}")
         block_parts.append(f"- _{timestamp}_")
@@ -290,10 +287,10 @@ class WikiStorage:
     def search(
         self,
         query: str,
-        subdir: Optional[str] = None,
+        subdir: str | None = None,
         max_results: int = 50,
         case_sensitive: bool = False,
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Ricerca full-text semplice.
 
         Scandisce ricorsivamente la root (o ``subdir``) e restituisce fino a
@@ -304,13 +301,12 @@ class WikiStorage:
         if max_results <= 0:
             max_results = 50
         needle = query if case_sensitive else query.lower()
-        results: List[SearchResult] = []
+        results: list[SearchResult] = []
         for path in self._iter_files(subdir):
             try:
                 text = path.read_text(encoding="utf-8")
             except (UnicodeDecodeError, OSError):
                 continue
-            haystack = text if case_sensitive else text.lower()
             for line_no, line in enumerate(text.splitlines(), start=1):
                 hay_line = line if case_sensitive else line.lower()
                 count = hay_line.count(needle)
@@ -333,7 +329,7 @@ class WikiStorage:
     # Helpers interni
     # ------------------------------------------------------------------
 
-    def _iter_files(self, subdir: Optional[str]) -> Iterable[Path]:
+    def _iter_files(self, subdir: str | None) -> Iterable[Path]:
         base = self.root
         if subdir:
             base = self._resolve(subdir)

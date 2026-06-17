@@ -19,10 +19,12 @@ EOF
 
 target="${1:-all}"
 case "${target}" in
-  mcp)  stop_service mcp ;;
-  rest) stop_service rest ;;
-  all)  stop_service mcp || true
-        stop_service rest || true ;;
+  mcp)      stop_service mcp ;;
+  mcp-http) stop_service mcp-http ;;
+  rest)     stop_service rest ;;
+  all)      stop_service mcp || true
+            stop_service mcp-http || true
+            stop_service rest || true ;;
   -h|--help) usage; exit 0 ;;
   *) log_error "Servizio sconosciuto: ${target}"; usage; exit 2 ;;
 esac
