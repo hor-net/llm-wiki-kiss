@@ -1,0 +1,26 @@
+# ambiente virtuale
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# editor
+.vscode/
+.idea/
+.DS_Store
+
+# runtime (log + pid dei servizi)
+var/
+*.log
+.env
+
+# file temporanei
+*.tmp
+*.swp
