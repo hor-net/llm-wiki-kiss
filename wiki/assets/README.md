@@ -1,10 +1,5 @@
-# Assets
+# Asset
 
-Cartella per immagini, allegati e file binari di supporto al wiki.
-
-Al momento non contiene risorse. Viene mantenuta sotto versionamento per consentire
-il link diretto da qualunque pagina, ad esempio:
-
-```markdown
-![Diagramma](../assets/diagramma-architettura.png)
-```
+Questa directory può contenere immagini e allegati collegati dalle pagine del
+wiki. `WikiStorage` gestisce come pagine soltanto Markdown e HTML; gli asset
+binari restano normali file del filesystem.

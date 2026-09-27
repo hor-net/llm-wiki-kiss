@@ -1,15 +1,21 @@
-# Wiki KISS
+# llm-wiki-kiss
 
-Wiki Markdown self-hosted con accesso MCP. Vedasi [indice](../index.md) per il punto di partenza.
+Esempio di pagina progetto per questo stesso repository.
 
 ## Obiettivo
 
-Fornire una base di conoscenza condivisa tra agenti AI diversi senza dipendere da servizi esterni.
+Offrire a LLM e agenti una knowledge base persistente composta da file di testo,
+accessibile localmente tramite CLI o MCP stdio e, opzionalmente, tramite MCP
+HTTPS autenticato.
 
-## Stato
+## Principi
 
-Attivo. Stack: Python, MCP SDK, FastAPI (REST opzionale).
+- un solo wiki per processo;
+- niente database;
+- letture parallele e scritture coordinate;
+- configurazione e backup comprensibili;
+- isolamento di clienti differenti tramite processi e filesystem distinti.
 
-## Decisioni rilevanti
+## Decisioni
 
-- [ADR 0001 — Storage su filesystem](../decisions/0001-storage-filesystem.md)
+- [Storage su filesystem](../decisions/0001-storage-filesystem.md)

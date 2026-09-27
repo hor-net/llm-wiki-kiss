@@ -1,2 +1,0 @@
-# Smoke
-Creato dal test.
