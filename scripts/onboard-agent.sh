@@ -277,12 +277,22 @@ access.
 
 Folder layout (create these when missing):
 
+- `services/<service-name>.md` — one page per shared company service
+  (CRM, ERP, billing, monitoring, internal APIs, etc.) with usage notes,
+  credentials, rate limits and on-call contacts.
+- `policies/<topic>.md` — company-wide rules (security, compliance, on-call
+  rotation, code review, data handling).
 - `projects/<name>.md` — project documentation, roadmaps, specs.
 - `notes/<YYYY-MM-DD>-<short-slug>.md` — quick notes, ideas, observations.
 - `decisions/<NNNN>-<short-slug>.md` — Architecture Decision Records.
 - `references/<topic>.md` — external links, sources, articles.
 - `assets/` — images, PDFs, audio (binary, not indexed).
 - `logs/<YYYY-MM-DD>.md` — append-only operational logs.
+
+When the user asks about an internal service, prefer `services/<name>.md`
+if it exists; otherwise create it (or an entry under `references/` while
+you gather information) and document the endpoint, authentication method,
+required scopes, rate limits, error codes and the on-call channel.
 
 Naming rules:
 
@@ -298,9 +308,37 @@ Content rules:
 - Markdown only (`.md`); keep one concept per page.
 - Cite sources and link related pages with relative paths.
 - Avoid duplicating content: prefer linking to the canonical page.
-- Keep private data (credentials, customer info) out of the wiki.
 - When information is uncertain, write "TODO" or link to an open question
   instead of guessing.
+
+## Shared services playbook
+
+This wiki is the canonical source of truth for shared company services
+and policies. Other agents rely on it to stay aligned. Follow these rules
+whenever you read or write about them:
+
+- **Treat the wiki as the source of truth.** If a tool or page says
+  something that contradicts the wiki, prefer the wiki and flag the
+  discrepancy with `append_note` in the relevant `services/` or
+  `policies/` page.
+- **Document shared services before using them.** Before calling an
+  internal API, run `search` for the service name; if missing, create
+  `services/<service>.md` with: purpose, base URL, auth method, scopes,
+  rate limits, common error codes, on-call contact, link to runbook.
+- **Document shared credentials with care.** Use placeholder values like
+  `<api-token>` in the wiki body and put the real secret in the team's
+  password manager or vault. Never commit live tokens to the wiki.
+- **Respect policies.** Always read the relevant `policies/<topic>.md`
+  before answering compliance, security or data-handling questions.
+- **Keep change history.** When you change a service page, append a
+  short change note via `append_note` so other agents can see what was
+  updated and when.
+- **Cross-link related services.** Each `services/` page should link to
+  its dependencies, dashboards and runbooks so agents can navigate the
+  graph without guessing.
+- **Cite when answering.** When answering about a service or policy,
+  quote the relevant page path (for example
+  `services/crm.md`) and the section heading.
 
 ## Editing rules
 
@@ -312,6 +350,9 @@ Content rules:
   page and adds a timestamped block.
 - For operational events ("the server restarted", "we decided X"),
   prefer `append_note` with `path` omitted so it lands in the daily log.
+- When updating shared services or policies, always `append_note` to
+  `services/<name>.md` or `policies/<topic>.md` so the change log stays
+  current.
 
 ## Local CLI fallback
 
