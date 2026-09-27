@@ -1,10 +1,10 @@
-# Nota di esempio
+# Example note
 
-Questa pagina dimostra il formato minimale del wiki.
+This page demonstrates the minimal wiki format.
 
-- Markdown UTF-8
-- titolo di primo livello
-- nome file in kebab-case
-- link relativi, per esempio [ADR sul filesystem](../decisions/0001-storage-filesystem.md)
+- UTF-8 Markdown
+- level-1 title
+- `kebab-case` filename
+- relative links, for example [ADR on filesystem](../decisions/0001-storage-filesystem.md)
 
-Sostituisci o elimina questa nota quando inizi a usare il tuo wiki.
+Replace or delete this note when you start using your own wiki.

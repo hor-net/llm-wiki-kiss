@@ -1,5 +1,5 @@
-# Asset
+# assets
 
-Questa directory può contenere immagini e allegati collegati dalle pagine del
-wiki. `WikiStorage` gestisce come pagine soltanto Markdown e HTML; gli asset
-binari restano normali file del filesystem.
+This folder can hold images and attachments linked from wiki pages.
+`WikiStorage` treats Markdown and HTML files as pages; binary assets stay as
+regular files on the filesystem.

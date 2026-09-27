@@ -30,7 +30,7 @@ def main() -> int:
     temporary_wiki = tempfile.TemporaryDirectory(prefix="wiki-kiss-smoke-")
     wiki = Path(temporary_wiki.name)
     (wiki / "notes").mkdir()
-    (wiki / "index.md").write_text("# Indice\n\nMCP locale.\n", encoding="utf-8")
+    (wiki / "index.md").write_text("# Index\n\nLocal MCP.\n", encoding="utf-8")
 
     cmd = [str(PYTHON), "-m", "mcp_server", "--root", str(wiki)]
     proc = subprocess.Popen(
@@ -65,7 +65,7 @@ def main() -> int:
         tool_names = {t["name"] for t in tools["result"]["tools"]}
         expected = {"list_pages", "read_page", "search", "write_page", "append_note"}
         assert expected <= tool_names, (tool_names, expected)
-        print(f"Tool disponibili: {sorted(tool_names)}")
+        print(f"Available tools: {sorted(tool_names)}")
 
         listing = send(
             proc,
@@ -77,7 +77,7 @@ def main() -> int:
             },
         )
         pages = json.loads(listing["result"]["content"][0]["text"])
-        print(f"Pagine trovate: {pages['count']}")
+        print(f"Pages found: {pages['count']}")
 
         read = send(
             proc,
@@ -92,8 +92,8 @@ def main() -> int:
             },
         )
         body = json.loads(read["result"]["content"][0]["text"])
-        assert "Indice" in body["content"], body
-        print(f"Letti {body['length']} caratteri di index.md")
+        assert "Index" in body["content"], body
+        print(f"Read {body['length']} characters of index.md")
 
         search = send(
             proc,
@@ -108,7 +108,7 @@ def main() -> int:
             },
         )
         results = json.loads(search["result"]["content"][0]["text"])
-        print(f"Risultati ricerca 'MCP': {results['count']}")
+        print(f"Search results for 'MCP': {results['count']}")
 
         write = send(
             proc,
@@ -127,7 +127,7 @@ def main() -> int:
             },
         )
         info = json.loads(write["result"]["content"][0]["text"])
-        print(f"Scritto: {info['path']} ({info['size']} byte)")
+        print(f"Written: {info['path']} ({info['size']} bytes)")
 
         note = send(
             proc,
@@ -142,9 +142,9 @@ def main() -> int:
             },
         )
         note_info = json.loads(note["result"]["content"][0]["text"])
-        print(f"Nota log: {note_info['path']}")
+        print(f"Log note: {note_info['path']}")
 
-        print("TUTTO OK")
+        print("ALL OK")
         return 0
     finally:
         proc.stdin.close()

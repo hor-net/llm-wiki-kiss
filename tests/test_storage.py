@@ -29,10 +29,10 @@ def _append_from_process(root: str, marker: str) -> None:
 
 @pytest.fixture()
 def tmp_wiki(tmp_path: Path) -> WikiStorage:
-    (tmp_path / "index.md").write_text("# Indice\n", encoding="utf-8")
+    (tmp_path / "index.md").write_text("# Index\n", encoding="utf-8")
     (tmp_path / "notes").mkdir()
     (tmp_path / "notes" / "a.md").write_text(
-        "# Nota A\nMCP è uno standard.\nAltro testo.\n",
+        "# Note A\nMCP is a standard.\nOther text.\n",
         encoding="utf-8",
     )
     (tmp_path / "notes" / "b.md").write_text(

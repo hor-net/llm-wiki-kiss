@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Genera una Agent Skill personalizzata per una singola istanza wiki-kiss.
+# Generate a personalised Agent Skill for a single wiki-kiss instance.
 set -euo pipefail
 
 _LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,21 +10,22 @@ usage() {
   cat <<EOF
 ${C_BOLD}Uso:${C_RESET} scripts/onboard-agent.sh [opzioni]
 
-Genera una skill Agent Skills con root locale, URL MCP HTTPS e token della
-configurazione corrente. I file sensibili sono creati con permessi 600.
+Generate an Agent Skills skill with the local root, MCP HTTPS URL and
+token from the current configuration. Sensitive files are created with
+mode 600.
 
-Opzioni:
-  --name NAME       Nome skill (lowercase, numeri e trattini)
-  --label TEXT      Nome umano del wiki
-  --mode MODE       auto, local oppure https (default: auto)
-  --target DIR      Directory skills (default: .agents/skills/generated)
-  --force           Sostituisce una skill omonima già esistente
-  -h, --help        Mostra questo messaggio
+Options:
+  --name NAME       Skill name (lowercase, digits and hyphens)
+  --label TEXT      Human-readable wiki name
+  --mode MODE       auto, local or https (default: auto)
+  --target DIR      Skills directory (default: .agents/skills/generated)
+  --force           Overwrite an existing skill with the same name
+  -h, --help        Show this message
 
-Esempi:
-  scripts/onboard-agent.sh --name wiki-privato
-  scripts/onboard-agent.sh --name wiki-privato --mode local
-  scripts/onboard-agent.sh --name wiki-remoto --mode https --target ~/.agents/skills
+Examples:
+  scripts/onboard-agent.sh --name private-wiki
+  scripts/onboard-agent.sh --name private-wiki --mode local
+  scripts/onboard-agent.sh --name remote-wiki --mode https --target ~/.agents/skills
 EOF
 }
 
@@ -43,7 +44,7 @@ while [[ $# -gt 0 ]]; do
     --target) TARGET="$2"; shift 2 ;;
     --force)  FORCE=1; shift ;;
     -h|--help) usage; exit 0 ;;
-    *) log_error "Argomento sconosciuto: $1"; usage; exit 2 ;;
+    *) log_error "Unknown argument: $1"; usage; exit 2 ;;
   esac
 done
 
@@ -57,11 +58,11 @@ else
 fi
 
 if [[ -z "${WIKI_ROOT:-}" || ! -d "${WIKI_ROOT}" ]]; then
-  log_error "WIKI_ROOT non configurata o inesistente. Esegui scripts/configure.sh."
+  log_error "WIKI_ROOT not configured or missing. Run scripts/configure.sh."
   exit 2
 fi
 if [[ -z "${WIKI_MCP_TOKEN:-}" ]]; then
-  log_error "Token non configurato. Esegui scripts/configure.sh --rotate-token."
+  log_error "Token not configured. Run scripts/configure.sh --rotate-token."
   exit 2
 fi
 
@@ -75,23 +76,23 @@ NAME="${NAME:-${default_name}}"
 LABEL="${LABEL:-${root_name}}"
 
 if [[ "${ARGUMENT_COUNT}" -eq 0 && -t 0 ]]; then
-  printf 'Nome skill [%s]: ' "${NAME}"
+  printf 'Skill name [%s]: ' "${NAME}"
   read -r answer
   NAME="${answer:-${NAME}}"
-  printf 'Nome umano del wiki [%s]: ' "${LABEL}"
+  printf 'Human-readable wiki name [%s]: ' "${LABEL}"
   read -r answer
   LABEL="${answer:-${LABEL}}"
-  printf 'Modalità auto/local/https [%s]: ' "${MODE}"
+  printf 'Mode auto/local/https [%s]: ' "${MODE}"
   read -r answer
   MODE="${answer:-${MODE}}"
 fi
 
 if [[ ! "${NAME}" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ || ${#NAME} -gt 64 ]]; then
-  log_error "Nome skill non valido: usa lowercase, numeri e trattini (max 64)."
+  log_error "Invalid skill name: use lowercase, digits and hyphens (max 64)."
   exit 2
 fi
 if [[ "${LABEL}" == *$'\n'* || "${LABEL}" == *$'\r'* || -z "${LABEL}" ]]; then
-  log_error "Label non valida."
+  log_error "Invalid label."
   exit 2
 fi
 
@@ -104,20 +105,20 @@ case "${MODE}" in
     fi
     ;;
   local|https) ;;
-  *) log_error "Modalità non valida: usa auto, local oppure https."; exit 2 ;;
+  *) log_error "Invalid mode: use auto, local or https."; exit 2 ;;
 esac
 
 if [[ "${MODE}" == "https" ]]; then
   if [[ "${WIKI_HTTPS_ENABLED:-0}" != "1" ]]; then
-    log_error "HTTPS non è abilitato. Usa scripts/configure.sh --https on."
+    log_error "HTTPS is not enabled. Use scripts/configure.sh --https on."
     exit 2
   fi
   if [[ -z "${WIKI_MCP_URL:-}" ]]; then
-    log_error "WIKI_MCP_URL mancante. Riconfigura HTTPS con --url."
+    log_error "WIKI_MCP_URL missing. Reconfigure HTTPS with --url."
     exit 2
   fi
   if [[ ! "${WIKI_MCP_URL}" =~ ^https://[^[:space:]]+/mcp/?$ ]]; then
-    log_error "WIKI_MCP_URL non valida: ${WIKI_MCP_URL}"
+    log_error "Invalid WIKI_MCP_URL: ${WIKI_MCP_URL}"
     exit 2
   fi
 fi
@@ -128,11 +129,11 @@ TARGET="$(cd "${TARGET}" && pwd -P)"
 DESTINATION="${TARGET}/${NAME}"
 
 if [[ -e "${DESTINATION}" && "${FORCE}" -ne 1 ]]; then
-  log_error "La skill esiste già: ${DESTINATION} (usa --force per sostituirla)."
+  log_error "The skill already exists: ${DESTINATION} (use --force to replace)."
   exit 1
 fi
 if [[ -e "${DESTINATION}" && ! -d "${DESTINATION}" ]]; then
-  log_error "Il percorso esiste e non è una directory: ${DESTINATION}"
+  log_error "The path exists and is not a directory: ${DESTINATION}"
   exit 1
 fi
 
@@ -301,11 +302,11 @@ else
 fi
 trap - EXIT
 
-log_ok "Skill generata: ${DESTINATION}"
-log_info "Modalità: ${MODE}"
-log_info "Root wiki: ${WIKI_ROOT}"
+log_ok "Skill generated: ${DESTINATION}"
+log_info "Mode: ${MODE}"
+log_info "Wiki root: ${WIKI_ROOT}"
 if [[ "${MODE}" == "https" ]]; then
   log_info "URL MCP: ${WIKI_MCP_URL}"
 fi
-log_warn "La skill contiene credenziali: non committarla e non condividerla."
+log_warn "The skill contains credentials: do not commit or share it."
 printf 'SKILL_PATH=%s\n' "${DESTINATION}/SKILL.md"

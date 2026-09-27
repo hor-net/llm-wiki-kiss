@@ -12,7 +12,7 @@ ${C_BOLD}Uso:${C_RESET} scripts/start-mcp.sh [opzioni]
 
 Avvia il server MCP del wiki KISS. Il server comunica via stdio e DEVE
 essere lanciato come sottoprocesso di un client MCP (Claude Code, Claude
-Desktop, Open Cloud, Perplexity, ...). Lanciarlo a mano è utile solo
+Desktop, Open Cloud, Perplexity, ...). Running it by hand is useful only
 per test: in quel caso usare --foreground.
 
 Opzioni:
@@ -49,8 +49,8 @@ if [[ -n "${LOG_LEVEL}" ]]; then
   LEVEL_FLAG=(--log-level "${LOG_LEVEL}")
 fi
 
-# Modalità foreground: il client MCP usa questo script come comando.
-# Questa è l'unica modalità realistica per stdio.
+# Foreground mode: the MCP client uses this script as the command.
+# This is the only realistic mode for stdio.
 exec "${VENV_PYTHON}" -m mcp_server \
   ${ROOT_FLAG[@]+"${ROOT_FLAG[@]}"} \
   ${LEVEL_FLAG[@]+"${LEVEL_FLAG[@]}"}

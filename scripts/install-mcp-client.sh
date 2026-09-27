@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stampa (e opzionalmente scrive) la configurazione MCP per i client più diffusi.
+# Prints (and optionally writes) the MCP configuration for the most common clients.
 set -euo pipefail
 
 _LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +20,7 @@ Opzioni:
                   dell'output. Default: generic.
   --root PATH     Cartella wiki. Default: ./wiki o \$WIKI_ROOT
   --python PATH   Interprete Python del venv (default: .venv/bin/python)
-  --out FILE      Scrivi la configurazione su FILE invece di stdout
+  --out FILE      Write the configuration to FILE instead of stdout
   -h, --help      Mostra questo messaggio
 EOF
 }
@@ -45,7 +45,7 @@ load_env_file
 
 PY="${PY_BIN:-${VENV_PYTHON}}"
 if [[ ! -x "${PY}" ]]; then
-  log_warn "Python venv non trovato in ${PY}. Userò 'python'."
+  log_warn "Python venv not found in ${PY}. Using 'python'."
   PY="python"
 fi
 

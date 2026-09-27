@@ -1,3 +1,3 @@
 # notes
 
-- [Nota di esempio](example-note.md)
+- [Example note](example-note.md)

@@ -54,7 +54,7 @@ DEFAULT_MCP_HTTP_PORT = 8766
 
 
 # ----------------------------------------------------------------------
-# Costruzione del server MCP (riusa gli stessi handler dello stdio)
+# MCP server construction (reuses the same stdio handlers)
 # ----------------------------------------------------------------------
 
 
@@ -93,7 +93,7 @@ def _to_text_content(payload) -> list[types.TextContent]:
 
 
 # ----------------------------------------------------------------------
-# Factory dell'app Starlette
+# Starlette app factory
 # ----------------------------------------------------------------------
 
 
@@ -118,8 +118,8 @@ def create_app(
     json_response:
         Se True, il server risponde con JSON puro (no SSE). Default True.
     stateless:
-        Se True, ogni richiesta è indipendente. Default True (più
-        semplice per client cloud). Se False, il server mantiene sessioni.
+        If True, each request is independent. Default True (simpler for
+        simpler for cloud clients). If False, the server keeps sessions.
     """
     root = wiki_root or _resolve_root_from_env()
     expected_token = token if token is not None else os.environ.get("WIKI_MCP_TOKEN")
@@ -170,7 +170,7 @@ def create_app(
         ],
     )
 
-    # Il middleware resta fail-closed se il token non è configurato.
+    # The middleware stays fail-closed when the token is not configured.
     final_app = Starlette(
         lifespan=lifespan,  # stesso lifespan dell'inner, con session_manager.run()
         routes=[Mount("/", app=inner_app)],

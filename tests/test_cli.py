@@ -13,10 +13,10 @@ from wiki_core.cli import main
 
 @pytest.fixture()
 def wiki(tmp_path: Path) -> Path:
-    (tmp_path / "index.md").write_text("# Indice\n", encoding="utf-8")
+    (tmp_path / "index.md").write_text("# Index\n", encoding="utf-8")
     (tmp_path / "notes").mkdir()
     (tmp_path / "notes" / "a.md").write_text(
-        "# Nota A\nContiene MCP locale.\n", encoding="utf-8"
+        "# Note A\nContains local MCP.\n", encoding="utf-8"
     )
     return tmp_path
 
@@ -30,7 +30,7 @@ def test_list_outputs_json(wiki: Path, capsys: pytest.CaptureFixture[str]) -> No
 
 def test_read_outputs_raw_markdown(wiki: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--root", str(wiki), "read", "notes/a.md"]) == 0
-    assert capsys.readouterr().out == "# Nota A\nContiene MCP locale.\n"
+    assert capsys.readouterr().out == "# Note A\nContains local MCP.\n"
 
 
 def test_search_outputs_json(wiki: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -50,7 +50,7 @@ def test_write_and_no_overwrite(wiki: Path, capsys: pytest.CaptureFixture[str]) 
     assert (wiki / "notes" / "new.md").read_text(encoding="utf-8") == "# New\nOffline"
 
     assert main([*command, "--no-overwrite"]) == 1
-    assert "esiste già" in capsys.readouterr().err
+    assert "already exists" in capsys.readouterr().err
 
 
 def test_append_reads_stdin(
@@ -79,6 +79,6 @@ def test_stats_uses_wiki_root_environment(
 def test_rebuild_indexes(wiki: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--root", str(wiki), "rebuild-indexes"]) == 0
     assert json.loads(capsys.readouterr().out) == {"status": "ok"}
-    assert "[Nota A](a.md)" in (wiki / "notes" / "index.md").read_text(
+    assert "[Note A](a.md)" in (wiki / "notes" / "index.md").read_text(
         encoding="utf-8"
     )

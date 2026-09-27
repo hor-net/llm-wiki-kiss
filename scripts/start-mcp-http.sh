@@ -11,8 +11,8 @@ usage() {
 ${C_BOLD}Uso:${C_RESET} scripts/start-mcp-http.sh [opzioni]
 
 Avvia il server MCP con trasporto Streamable HTTPS (MCP 2025-06-18).
-L'avvio è consentito solo se configure.sh ha abilitato HTTPS e sono presenti
-certificato TLS, chiave privata e Bearer token.
+The start is allowed only if configure.sh enabled HTTPS and a
+certificate, private key and Bearer token are present.
 
 Opzioni:
   --host HOST           Host di binding (default: 127.0.0.1)
@@ -71,18 +71,18 @@ if [[ "${WIKI_HTTPS_ENABLED:-0}" != "1" ]]; then
   exit 2
 fi
 if [[ -z "${CERT}" || ! -r "${CERT}" ]]; then
-  log_error "Certificato TLS mancante o non leggibile: ${CERT:-<vuoto>}"
+  log_error "TLS certificate missing or not readable: ${CERT:-<empty>}"
   exit 2
 fi
 if [[ -z "${KEY}" || ! -r "${KEY}" ]]; then
-  log_error "Chiave TLS mancante o non leggibile: ${KEY:-<vuoto>}"
+  log_error "TLS key missing or not readable: ${KEY:-<empty>}"
   exit 2
 fi
 
 # Controlla che la porta sia libera prima di partire.
 if command -v lsof >/dev/null 2>&1; then
   if lsof -iTCP:"${PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
-    log_error "La porta ${PORT} è già occupata."
+    log_error "Port ${PORT} is already in use."
     exit 1
   fi
 fi

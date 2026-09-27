@@ -1,6 +1,4 @@
-# Indice del Wiki
-
-## Categorie
+# Wiki Index
 
 - [assets](assets/index.md)
 - [decisions](decisions/index.md)

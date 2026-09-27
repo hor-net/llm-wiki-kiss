@@ -1,11 +1,11 @@
 """Implementazione dello storage del wiki su filesystem.
 
-Convenzioni:
-- Una pagina è un file con estensione ``.md`` o ``.html``.
-- I percorsi forniti dall'esterno sono *relativi* alla root del wiki
-  e usano il separatore ``/``.
-- Tutti i percorsi vengono risolti e validati per impedire traversal.
-- I file binari (asset) non sono gestiti da questo modulo.
+Conventions:
+- A page is a file with the ``.md`` or ``.html`` extension.
+- Paths provided from the outside are *relative* to the wiki root and
+  use ``/`` as the separator.
+- Every path is resolved and validated to prevent traversal.
+- Binary files (assets) are not handled by this module.
 """
 
 from __future__ import annotations
@@ -33,23 +33,23 @@ _THREAD_LOCKS_GUARD = threading.Lock()
 
 
 class WikiStorageError(Exception):
-    """Errore generico dello storage."""
+    """Generic storage error."""
 
 
 class InvalidPathError(WikiStorageError):
-    """Il percorso fornito non è valido o tenta un traversal."""
+    """The provided path is invalid or attempts traversal."""
 
 
 class PageNotFoundError(WikiStorageError):
-    """La pagina richiesta non esiste."""
+    """The requested page does not exist."""
 
 
 class PageAlreadyExistsError(WikiStorageError):
-    """La pagina esiste già e ``overwrite`` è False."""
+    """The page already exists and ``overwrite`` is False."""
 
 
 class WriteLockTimeoutError(WikiStorageError):
-    """Il lock esclusivo del wiki non è stato acquisito entro il timeout."""
+    """The exclusive wiki lock was not acquired within the timeout."""
 
 
 @dataclass(frozen=True)
@@ -91,20 +91,20 @@ class WikiStorage:
         self.root = Path(root).expanduser().resolve()
         if not self.root.exists():
             raise WikiStorageError(
-                f"La cartella wiki non esiste: {self.root}"
+                f"The wiki folder does not exist: {self.root}"
             )
         if not self.root.is_dir():
             raise WikiStorageError(
-                f"Il percorso wiki non è una cartella: {self.root}"
+                f"The wiki path is not a folder: {self.root}"
             )
         if write_lock_timeout < 0:
-            raise WikiStorageError("Il timeout del lock non può essere negativo.")
+            raise WikiStorageError("The lock timeout cannot be negative.")
         self.write_lock_timeout = float(write_lock_timeout)
         with _THREAD_LOCKS_GUARD:
             self._thread_lock = _THREAD_LOCKS.setdefault(self.root, threading.RLock())
 
     # ------------------------------------------------------------------
-    # Utilità
+    # Utilities
     # ------------------------------------------------------------------
 
     def _normalize_path(self, raw: str) -> str:
@@ -166,17 +166,17 @@ class WikiStorage:
 
     @contextmanager
     def _write_lock(self) -> Iterator[None]:
-        """Serializza le mutazioni della stessa root tra thread e processi.
+        """Serialises mutations on the same root across threads and processes.
 
-        Il file di lock resta nella root ed è ignorato dalle API del wiki.
-        Il lock del sistema operativo viene rilasciato automaticamente anche
-        se il processo termina; non esistono quindi lock obsoleti da pulire.
+        The lock file lives in the root and is ignored by the wiki APIs.
+        The operating-system lock is released automatically even if the
+        process dies; there are therefore no stale locks to clean up.
         """
         deadline = time.monotonic() + self.write_lock_timeout
         acquired_thread = self._thread_lock.acquire(timeout=self.write_lock_timeout)
         if not acquired_thread:
             raise WriteLockTimeoutError(
-                "Timeout in attesa del lock di scrittura del wiki."
+                "Timeout while waiting for the wiki write lock."
             )
 
         lock_handle = None
@@ -198,7 +198,7 @@ class WikiStorage:
                 except BlockingIOError:
                     if time.monotonic() >= deadline:
                         raise WriteLockTimeoutError(
-                            "Timeout in attesa del lock di scrittura del wiki."
+                            "Timeout while waiting for the wiki write lock."
                         ) from None
                     time.sleep(min(0.01, max(0.0, deadline - time.monotonic())))
             yield
@@ -266,7 +266,7 @@ class WikiStorage:
             os.replace(temporary_path, target)
             temporary_path = None
 
-            # Rende durevole anche il rename dove il sistema lo supporta.
+            # Makes the rename durable where the system supports it.
             try:
                 directory_fd = os.open(target.parent, os.O_RDONLY)
             except OSError:  # pragma: no cover - dipende dal filesystem
@@ -361,7 +361,7 @@ class WikiStorage:
         with self._write_lock():
             if target.exists() and not overwrite:
                 raise PageAlreadyExistsError(
-                    f"La pagina esiste già: {normalized}"
+                    f"The page already exists: {normalized}"
                 )
             self._atomic_write_text(target, content)
             self._rebuild_indexes_unlocked()
@@ -382,8 +382,8 @@ class WikiStorage:
     ) -> PageInfo:
         """Aggiunge contenuto a una pagina esistente o ne crea una di log.
 
-        Se ``rel_path`` è ``None`` o vuoto, viene creato/aggiornato il file
-        di log del giorno corrente in ``wiki/logs/YYYY-MM-DD.md``.
+        If ``rel_path`` is ``None`` or empty, the current day's log file
+        is created or updated under ``wiki/logs/YYYY-MM-DD.md``.
         """
         if not content or not content.strip():
             raise WikiStorageError("Contenuto della nota vuoto.")
@@ -439,14 +439,14 @@ class WikiStorage:
             if path.is_dir() and not path.name.startswith(".")
         )
 
-        # Indice generale: categorie e pagine che si trovano direttamente
-        # nella root. Gli index.md generati non vengono indicizzati.
-        lines = ["# Indice del Wiki", "", "## Categorie", ""]
+        # General index: categories and pages that live directly in the
+        # root. Generated index.md files are not indexed.
+        lines = ["# Wiki Index", "", "## Categories", ""]
         if categories:
             for category in categories:
                 lines.append(f"- [{category.name}]({category.name}/index.md)")
         else:
-            lines.append("Nessuna categoria.")
+            lines.append("No categories.")
         root_pages = [
             path for path in sorted(self.root.iterdir())
             if path.is_file()
@@ -454,7 +454,7 @@ class WikiStorage:
             and path.name.lower() != "index.md"
         ]
         if root_pages:
-            lines.extend(["", "## Pagine", ""])
+            lines.extend(["", "## Pages", ""])
             for page in root_pages:
                 title = self._title_from_path(page.name, page.read_text(encoding="utf-8"))
                 lines.append(f"- [{title}]({page.name})")

@@ -18,57 +18,57 @@ DEFAULT_ROOT = Path(__file__).resolve().parent.parent / "wiki"
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="wiki-kiss",
-        description="Accesso locale offline a un singolo wiki KISS.",
+        description="Offline local access to a single KISS wiki.",
     )
     parser.add_argument(
         "--root",
         default=os.environ.get("WIKI_ROOT", str(DEFAULT_ROOT)),
-        help="Root del wiki (default: WIKI_ROOT o ./wiki).",
+        help="Wiki root (default: WIKI_ROOT or ./wiki).",
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
-    list_command = commands.add_parser("list", help="Elenca le pagine in JSON.")
-    list_command.add_argument("--subdir", help="Limita a una sottocartella.")
+    list_command = commands.add_parser("list", help="Lists the pages in JSON.")
+    list_command.add_argument("--subdir", help="Restrict to a subfolder.")
 
-    read_command = commands.add_parser("read", help="Stampa una pagina su stdout.")
-    read_command.add_argument("path", help="Percorso relativo della pagina.")
+    read_command = commands.add_parser("read", help="Prints a page to stdout.")
+    read_command.add_argument("path", help="Relative path of the page.")
 
-    search_command = commands.add_parser("search", help="Cerca testo nelle pagine.")
+    search_command = commands.add_parser("search", help="Searches text across pages.")
     search_command.add_argument("query")
     search_command.add_argument("--subdir")
     search_command.add_argument("--max-results", type=int, default=50)
     search_command.add_argument("--case-sensitive", action="store_true")
 
-    write_command = commands.add_parser("write", help="Crea o sovrascrive una pagina.")
+    write_command = commands.add_parser("write", help="Creates or overwrites a page.")
     write_command.add_argument("path")
     _add_content_arguments(write_command)
     write_command.add_argument(
         "--no-overwrite",
         action="store_true",
-        help="Fallisce se la pagina esiste già.",
+        help="Fail if the page already exists.",
     )
 
-    append_command = commands.add_parser("append", help="Accoda una nota o un log.")
+    append_command = commands.add_parser("append", help="Appends a note or log entry.")
     append_command.add_argument(
         "path",
         nargs="?",
-        help="Pagina relativa; se omessa usa il log giornaliero.",
+        help="Target page; defaults to today's log when omitted.",
     )
     append_command.add_argument("--heading")
     _add_content_arguments(append_command)
 
-    commands.add_parser("stats", help="Mostra statistiche in JSON.")
-    commands.add_parser("rebuild-indexes", help="Rigenera gli indici del wiki.")
+    commands.add_parser("stats", help="Shows statistics in JSON.")
+    commands.add_parser("rebuild-indexes", help="Rebuilds the wiki indexes.")
     return parser
 
 
 def _add_content_arguments(parser: argparse.ArgumentParser) -> None:
     source = parser.add_mutually_exclusive_group()
-    source.add_argument("--content", help="Contenuto passato direttamente.")
+    source.add_argument("--content", help="Content passed directly.")
     source.add_argument(
         "--file",
         type=Path,
-        help="Legge il contenuto da un file; usare '-' per stdin.",
+        help="Reads the content from a file; use '-' for stdin.",
     )
 
 
@@ -79,9 +79,9 @@ def _read_content(args: argparse.Namespace) -> str:
         try:
             return args.file.expanduser().read_text(encoding="utf-8")
         except OSError as exc:
-            raise WikiStorageError(f"Impossibile leggere il file: {args.file}") from exc
+            raise WikiStorageError(f"Cannot read the file: {args.file}") from exc
     if sys.stdin.isatty():
-        raise WikiStorageError("Fornire --content, --file oppure contenuto su stdin.")
+        raise WikiStorageError("Provide --content, --file or content on stdin.")
     return sys.stdin.read()
 
 
@@ -153,7 +153,7 @@ def _run(args: argparse.Namespace) -> None:
         _print_json({"status": "ok"})
         return
 
-    raise WikiStorageError(f"Comando sconosciuto: {args.command}")
+    raise WikiStorageError(f"Unknown command: {args.command}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -162,7 +162,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         _run(args)
     except (OSError, UnicodeError, WikiStorageError) as exc:
-        print(f"Errore: {exc}", file=sys.stderr)
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
     return 0
 

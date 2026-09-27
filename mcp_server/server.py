@@ -1,11 +1,11 @@
-"""Implementazione del server MCP per il wiki KISS.
+"""MCP server implementation for the KISS wiki.
 
-Trasporto di default: ``stdio``. Per altri trasporti si può importare
-:func:`build_server` e gestire il ciclo di vita manualmente.
+Default transport: ``stdio``. Other transports can be obtained by
+importing :func:`build_server` and managing the lifecycle manually.
 
-Tutti i tool sono dichiarati con uno schema JSON esplicito, in modo che
-qualsiasi client compatibile (Open Cloud, Claude Code, Perplexity, ...)
-possa negoziare capabilities senza intervento manuale.
+Every tool is declared with an explicit JSON schema so that any
+compatible client (Open Cloud, Claude Code, Perplexity, ...) can negotiate
+capabilities without manual setup.
 """
 
 from __future__ import annotations
@@ -33,28 +33,28 @@ LOGGER = logging.getLogger("mcp_server")
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent / "wiki"
 
 SERVER_INSTRUCTIONS = (
-    "Wiki KISS self-hosted. Usa i tool per leggere, scrivere e cercare "
-    "pagine Markdown/HTML nella cartella wiki configurata. I percorsi "
-    "sono relativi alla root del wiki e usano '/' come separatore."
+    "Self-hosted KISS wiki. Use the tools to read, write and search "
+    "Markdown/HTML pages in the configured wiki folder. Paths are "
+    "relative to the wiki root and use '/' as the separator."
 )
 
 
 # ----------------------------------------------------------------------
-# Definizione dichiarativa dei tool
+# Declarative tool definitions
 # ----------------------------------------------------------------------
 
 TOOL_LIST_PAGES: types.Tool = types.Tool(
     name="list_pages",
     description=(
-        "Elenca tutte le pagine del wiki (file .md/.html). "
-        "Opzionalmente accetta una sottocartella."
+        "Lists all the pages in the wiki (.md/.html files). "
+        "Optionally accepts a subfolder."
     ),
     inputSchema={
         "type": "object",
         "properties": {
             "subdir": {
                 "type": "string",
-                "description": "Sottocartella relativa opzionale.",
+                "description": "Optional relative subfolder.",
             }
         },
         "additionalProperties": False,
@@ -64,15 +64,15 @@ TOOL_LIST_PAGES: types.Tool = types.Tool(
 TOOL_READ_PAGE: types.Tool = types.Tool(
     name="read_page",
     description=(
-        "Legge il contenuto di una pagina del wiki dato il percorso "
-        "relativo (es. 'notes/esempio-nota.md')."
+        "Reads the content of a wiki page given the relative "
+        "path (e.g. 'notes/example-note.md')."
     ),
     inputSchema={
         "type": "object",
         "properties": {
             "path": {
                 "type": "string",
-                "description": "Percorso relativo della pagina, con estensione.",
+                "description": "Relative path of the page, with extension.",
             }
         },
         "required": ["path"],
@@ -83,29 +83,29 @@ TOOL_READ_PAGE: types.Tool = types.Tool(
 TOOL_SEARCH: types.Tool = types.Tool(
     name="search",
     description=(
-        "Ricerca full-text semplice (case-insensitive di default) "
-        "in tutte le pagine del wiki."
+        "Simple full-text search (case-insensitive by default) "
+        "across all wiki pages."
     ),
     inputSchema={
         "type": "object",
         "properties": {
             "query": {
                 "type": "string",
-                "description": "Stringa da cercare.",
+                "description": "String to search for.",
             },
             "subdir": {
                 "type": "string",
-                "description": "Limita la ricerca a una sottocartella.",
+                "description": "Restrict the search to a subfolder.",
             },
             "max_results": {
                 "type": "integer",
                 "minimum": 1,
                 "maximum": 500,
-                "description": "Numero massimo di occorrenze restituite.",
+                "description": "Maximum number of matches returned.",
             },
             "case_sensitive": {
                 "type": "boolean",
-                "description": "Se true, la ricerca è case-sensitive.",
+                "description": "If true, the search is case-sensitive.",
                 "default": False,
             },
         },
@@ -117,23 +117,23 @@ TOOL_SEARCH: types.Tool = types.Tool(
 TOOL_WRITE_PAGE: types.Tool = types.Tool(
     name="write_page",
     description=(
-        "Crea o sovrascrive una pagina del wiki. Se l'estensione manca "
-        "viene aggiunto .md."
+        "Creates or overwrites a wiki page. If the extension is missing "
+        ".md is added."
     ),
     inputSchema={
         "type": "object",
         "properties": {
             "path": {
                 "type": "string",
-                "description": "Percorso relativo della pagina.",
+                "description": "Relative path of the page.",
             },
             "content": {
                 "type": "string",
-                "description": "Contenuto Markdown/HTML della pagina.",
+                "description": "Markdown/HTML content of the page.",
             },
             "overwrite": {
                 "type": "boolean",
-                "description": "Se false, rifiuta la scrittura se la pagina esiste.",
+                "description": "If false, refuses to write when the page exists.",
                 "default": True,
             },
         },
@@ -145,8 +145,8 @@ TOOL_WRITE_PAGE: types.Tool = types.Tool(
 TOOL_APPEND_NOTE: types.Tool = types.Tool(
     name="append_note",
     description=(
-        "Aggiunge rapidamente una nota o un log. Se 'path' è omesso, "
-        "la nota viene accodata al file di log del giorno corrente "
+        "Quickly appends a note or log entry. If 'path' is omitted, "
+        "the note is appended to the current day's log file "
         "(wiki/logs/YYYY-MM-DD.md)."
     ),
     inputSchema={
@@ -154,15 +154,15 @@ TOOL_APPEND_NOTE: types.Tool = types.Tool(
         "properties": {
             "content": {
                 "type": "string",
-                "description": "Testo della nota.",
+                "description": "Text of the note.",
             },
             "path": {
                 "type": "string",
-                "description": "Pagina di destinazione opzionale.",
+                "description": "Optional target page.",
             },
             "heading": {
                 "type": "string",
-                "description": "Intestazione di secondo livello opzionale.",
+                "description": "Optional level-2 heading.",
             },
         },
         "required": ["content"],
@@ -180,11 +180,11 @@ ALL_TOOLS: tuple[types.Tool, ...] = (
 
 
 # ----------------------------------------------------------------------
-# Factory del server
+# Server factory
 # ----------------------------------------------------------------------
 
 def build_server(root: str | os.PathLike[str] | None = None) -> Server:
-    """Costruisce e configura un'istanza di :class:`mcp.server.Server`."""
+    """Builds and configures an instance of :class:`mcp.server.Server`."""
     wiki_root = Path(root) if root else _resolve_root_from_env()
     storage = WikiStorage(wiki_root)
     server = Server(
@@ -335,7 +335,7 @@ def _to_text_content(payload: Any) -> list[types.TextContent]:
 # ----------------------------------------------------------------------
 
 async def run(root: str | os.PathLike[str] | None = None) -> None:
-    """Avvia il server MCP in modalità ``stdio``."""
+    """Starts the MCP server in ``stdio`` mode."""
     server = build_server(root)
     async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
         await server.run(
@@ -348,7 +348,7 @@ async def run(root: str | os.PathLike[str] | None = None) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="wiki-kiss-mcp",
-        description="Server MCP per il wiki KISS self-hosted.",
+        description="MCP server for the self-hosted KISS wiki.",
     )
     parser.add_argument(
         "--root",

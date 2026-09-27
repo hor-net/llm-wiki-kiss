@@ -18,10 +18,10 @@ TOKEN = "rest-test-token-12345"
 
 @pytest.fixture()
 def app(tmp_path: Path):
-    (tmp_path / "index.md").write_text("# Indice\n", encoding="utf-8")
+    (tmp_path / "index.md").write_text("# Index\n", encoding="utf-8")
     (tmp_path / "notes").mkdir()
     (tmp_path / "notes" / "a.md").write_text(
-        "# Nota A\nContiene MCP e basta.\n", encoding="utf-8"
+        "# Note A\nJust contains MCP.\n", encoding="utf-8"
     )
     return create_app(root=tmp_path, token=TOKEN)
 

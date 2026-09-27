@@ -18,7 +18,7 @@ salvate in .wiki-kiss.env con permessi 600.
 Opzioni:
   --root PATH          Root del singolo wiki; viene creata se manca
   --token TOKEN        Imposta un token esistente (sconsigliato nella shell history)
-  --rotate-token       Genera e salva un nuovo token casuale
+  --rotate-token       Generate and save a new random token
   --show-token         Stampa il token configurato e termina
   --https on|off       Abilita/avvia oppure arresta/disabilita MCP HTTPS
   --host HOST          Host HTTPS (default: 127.0.0.1)
@@ -106,18 +106,18 @@ if [[ "${had_arguments}" -eq 0 && -t 0 ]]; then
   read -r answer
   ROOT_VALUE="${answer:-${ROOT_VALUE}}"
 
-  printf 'Abilitare e avviare MCP HTTPS? [s/N]: '
+  printf 'Enable and start MCP HTTPS? [s/N]: '
   read -r answer
   case "${answer}" in
-    s|S|si|SI|sì|SÌ|y|Y|yes|YES) HTTPS_VALUE=1 ;;
+    s|S|s|Y|yes|YES) HTTPS_VALUE=1 ;;
     *) HTTPS_VALUE=0 ;;
   esac
 
   if [[ "${HTTPS_VALUE}" == "1" ]]; then
-    printf 'Certificato TLS PEM [%s]: ' "${CERT_VALUE}"
+    printf 'TLS PEM certificate [%s]: ' "${CERT_VALUE}"
     read -r answer
     CERT_VALUE="${answer:-${CERT_VALUE}}"
-    printf 'Chiave privata TLS PEM [%s]: ' "${KEY_VALUE}"
+    printf 'TLS PEM private key [%s]: ' "${KEY_VALUE}"
     read -r answer
     KEY_VALUE="${answer:-${KEY_VALUE}}"
   fi
@@ -135,7 +135,7 @@ KEY_VALUE="${KEY_VALUE/#\~/${HOME}}"
 
 if [[ ! "${PORT_VALUE}" =~ ^[0-9]+$ ]] \
    || (( PORT_VALUE < 1 || PORT_VALUE > 65535 )); then
-  log_error "Porta non valida: ${PORT_VALUE}"
+  log_error "Invalid port: ${PORT_VALUE}"
   exit 2
 fi
 
@@ -146,11 +146,11 @@ resolve_existing_file() {
   local raw="$1"
   local label="$2"
   if [[ -z "${raw}" ]]; then
-    log_error "${label} mancante."
+    log_error "${label} missing."
     return 1
   fi
   if [[ ! -f "${raw}" || ! -r "${raw}" ]]; then
-    log_error "${label} non leggibile: ${raw}"
+    log_error "${label} not readable: ${raw}"
     return 1
   fi
   (cd "$(dirname "${raw}")" && printf '%s/%s' "$(pwd -P)" "$(basename "${raw}")")
@@ -168,7 +168,7 @@ if [[ "${ROTATE_TOKEN}" -eq 1 || -z "${TOKEN_VALUE}" ]]; then
   TOKEN_VALUE="$(generate_token)"
 fi
 if [[ -z "${TOKEN_VALUE//[[:space:]]/}" ]]; then
-  log_error "Il token non può essere vuoto."
+  log_error "The token cannot be empty."
   exit 2
 fi
 
@@ -192,7 +192,7 @@ if [[ "${HTTPS_VALUE}" -eq 1 && -z "${URL_VALUE}" ]]; then
   esac
 fi
 if [[ -n "${URL_VALUE}" && ! "${URL_VALUE}" =~ ^https://[^[:space:]]+/mcp/?$ ]]; then
-  log_error "URL MCP non valida: deve essere https://.../mcp"
+  log_error "Invalid MCP URL: it must be https://.../mcp"
   exit 2
 fi
 
@@ -216,9 +216,9 @@ chmod 600 "${temporary}"
 mv -f "${temporary}" "${CONFIG_FILE}"
 trap - EXIT
 
-log_ok "Configurazione salvata: ${CONFIG_FILE}"
+log_ok "Configuration saved: ${CONFIG_FILE}"
 log_info "Root wiki: ${ROOT_VALUE}"
-log_info "MCP HTTPS: $([[ "${HTTPS_VALUE}" -eq 1 ]] && printf 'abilitato' || printf 'disabilitato')"
+log_info "MCP HTTPS: $([[ "${HTTPS_VALUE}" -eq 1 ]] && printf 'enabled' || printf 'disabled')"
 [[ -n "${URL_VALUE}" ]] && log_info "URL MCP: ${URL_VALUE}"
 printf 'WIKI_MCP_TOKEN=%s\n' "${TOKEN_VALUE}"
 
@@ -237,6 +237,6 @@ if [[ "${APPLY}" -eq 1 ]]; then
   if [[ "${HTTPS_VALUE}" -eq 1 ]]; then
     "${PROJECT_ROOT}/scripts/start-mcp-http.sh"
   else
-    log_info "Interfaccia MCP HTTPS spenta. MCP stdio e CLI restano disponibili."
+    log_info "MCP HTTPS interface off. MCP stdio and CLI remain available."
   fi
 fi

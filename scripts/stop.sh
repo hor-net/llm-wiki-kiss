@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ferma uno o più servizi (mcp, rest, all).
+# Stops one or more services (mcp, rest, all).
 set -euo pipefail
 
 _LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

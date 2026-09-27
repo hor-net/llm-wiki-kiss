@@ -69,7 +69,7 @@ ensure_dirs() {
 # I log informativi vanno su stderr per non sporcare lo stdout dei comandi.
 load_env_file() {
   local f
-  # .wiki-kiss.env è la configurazione gestita e prevale sul generico .env.
+  # .wiki-kiss.env is the managed configuration and takes precedence over the generic .env.
   for f in "${PROJECT_ROOT}/.env" "${PROJECT_ROOT}/.wiki-kiss.env"; do
     if [[ -f "${f}" ]]; then
       log_info "Carico variabili da ${f}" >&2
@@ -141,7 +141,7 @@ start_daemon() {
   local pf
   pf="$(pidfile_for "${name}")"
   if is_running "${name}"; then
-    log_warn "${name} è già in esecuzione (pid $(cat "${pf}"))"
+    log_warn "${name} is already running (pid $(cat "${pf}"))"
     return 0
   fi
   ensure_dirs
@@ -166,7 +166,7 @@ stop_service() {
   local pf
   pf="$(pidfile_for "${name}")"
   if ! [[ -f "${pf}" ]]; then
-    log_warn "${name} non è in esecuzione"
+    log_warn "${name} is not running"
     return 0
   fi
   local pid

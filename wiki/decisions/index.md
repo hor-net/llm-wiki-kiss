@@ -1,3 +1,3 @@
 # decisions
 
-- [ADR 0001 — Storage su filesystem](0001-storage-filesystem.md)
+- [ADR 0001 — Filesystem storage](0001-storage-filesystem.md)

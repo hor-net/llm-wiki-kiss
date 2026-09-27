@@ -1,4 +1,4 @@
-"""Autenticazione Bearer condivisa dai trasporti HTTP del wiki."""
+"""Bearer authentication shared by the wiki HTTP transports."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 class BearerAuthMiddleware:
-    """Protegge un'app ASGI con un singolo Bearer token.
+    """Protects an ASGI app with a single Bearer token.
 
-    Se il token non è configurato il middleware resta *fail closed* e risponde
-    503 a ogni richiesta. Gli health check possono essere pubblici solo dopo
-    che il servizio è stato configurato con un token.
+    When the token is not configured the middleware stays *fail-closed* and
+    replies 503 to every request. Health checks can only be public once
+    the service has been configured with a token.
     """
 
     def __init__(

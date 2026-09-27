@@ -55,7 +55,7 @@ require_venv
 case "${HOST}" in
   127.0.0.1|localhost|::1) ;;
   *)
-    log_error "La REST API è consentita solo in loopback. Per accesso remoto usa MCP HTTPS."
+    log_error "The REST API is allowed only on the loopback. Use MCP HTTPS for remote access."
     exit 2
     ;;
 esac
@@ -63,7 +63,7 @@ esac
 # Controlla che la porta sia libera prima di partire.
 if command -v lsof >/dev/null 2>&1; then
   if lsof -iTCP:"${PORT}" -sTCP:LISTEN >/dev/null 2>&1; then
-    log_error "La porta ${PORT} è già occupata."
+    log_error "Port ${PORT} is already in use."
     exit 1
   fi
 fi

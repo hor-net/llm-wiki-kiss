@@ -1,8 +1,8 @@
 # Model Context Protocol
 
-Riferimento ufficiale del protocollo usato dal server:
+Official reference for the protocol used by the server:
 
 - <https://modelcontextprotocol.io/>
 
-Il progetto supporta MCP stdio per agenti locali e Streamable HTTP protetto da
-TLS e Bearer token per l'accesso di rete opzionale.
+The project supports MCP stdio for local agents and Streamable HTTP protected
+by TLS and a Bearer token for optional network access.

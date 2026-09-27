@@ -1,21 +1,22 @@
 # llm-wiki-kiss
 
-Esempio di pagina progetto per questo stesso repository.
+Example project page for this repository.
 
-## Obiettivo
+## Goal
 
-Offrire a LLM e agenti una knowledge base persistente composta da file di testo,
-accessibile localmente tramite CLI o MCP stdio e, opzionalmente, tramite MCP
-HTTPS autenticato.
+Provide LLM agents and other agents with a persistent knowledge base made
+of text files, accessible locally through a CLI or MCP stdio, and optionally
+through authenticated MCP HTTPS.
 
-## Principi
+## Principles
 
-- un solo wiki per processo;
-- niente database;
-- letture parallele e scritture coordinate;
-- configurazione e backup comprensibili;
-- isolamento di clienti differenti tramite processi e filesystem distinti.
+- one wiki per process;
+- no database;
+- parallel reads and coordinated writes;
+- configuration and backup must remain understandable;
+- different customers are isolated through distinct processes and
+  filesystems.
 
-## Decisioni
+## Decisions
 
-- [Storage su filesystem](../decisions/0001-storage-filesystem.md)
+- [Filesystem storage](../decisions/0001-storage-filesystem.md)

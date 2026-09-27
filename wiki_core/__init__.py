@@ -1,8 +1,8 @@
 """Modulo core per l'accesso al wiki su filesystem.
 
 Espone l'oggetto :class:`WikiStorage` con tutte le primitive di lettura,
-scrittura, lista e ricerca. Il modulo è intenzionalmente privo di dipendenze
-esterne: deve restare utilizzabile anche senza il server MCP attivo.
+read, write, list and search. The module intentionally has no external
+dependencies: it must remain usable even without the MCP server running.
 """
 
 from .storage import (

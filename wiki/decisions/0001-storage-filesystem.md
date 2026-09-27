@@ -1,25 +1,25 @@
-# ADR 0001 — Storage su filesystem
+# ADR 0001 — Filesystem storage
 
-## Stato
+## Status
 
-Accettata.
+Accepted.
 
-## Contesto
+## Context
 
-Il wiki deve restare leggibile senza servizi esterni, database o formati
-proprietari. Agenti diversi devono poter consultare la stessa knowledge base
-tramite un'interfaccia stabile.
+The wiki must stay readable without external services, databases or
+proprietary formats. Different agents need to query the same knowledge base
+through a stable interface.
 
-## Decisione
+## Decision
 
-Le pagine sono file Markdown o HTML UTF-8 sotto una singola root configurata.
-Gli indici sono derivati deterministicamente dai file. Le scritture passano da
-`WikiStorage`, usano un lock per root e pubblicazione atomica.
+Pages are UTF-8 Markdown or HTML files under a single configured root.
+Indexes are derived deterministically from the files. Writes go through
+`WikiStorage`, use a per-root lock and rely on atomic publish.
 
-## Conseguenze
+## Consequences
 
-- backup e migrazione consistono nella copia della directory;
-- Git può versionare i contenuti;
-- ricerca e indici rimangono semplici;
-- non esistono transazioni distribuite o query da database;
-- script che scrivono direttamente nei file aggirano il coordinamento.
+- backup and migration consist in copying the directory;
+- Git can version the content;
+- search and indexes stay simple;
+- there are no distributed transactions or database queries;
+- scripts that write directly to the files bypass the coordination.

@@ -40,33 +40,33 @@ async def main() -> int:
 
     # httpx ASGITransport non triggera il lifespan: lo facciamo a mano.
     async with app.router.lifespan_context(app), build_client(app) as client:
-        # 1) Health senza auth
+        # 1) Health without auth
         r = await client.get("/health")
         assert r.status_code == 200, (r.status_code, r.text)
         data = r.json()
         assert data["status"] == "ok"
         assert data["transport"] == "streamable-http"
         assert "wiki_root" not in data
-        print(f"[OK] /health senza auth e senza path locali: {data}")
+        print(f"[OK] /health without auth and without local paths: {data}")
 
-        # 2) /mcp senza auth -> 401
+        # 2) /mcp without auth -> 401
         r = await client.post(
             "/mcp",
             json={"jsonrpc": "2.0", "id": 1, "method": "ping"},
         )
         assert r.status_code == 401, (r.status_code, r.text)
-        print(f"[OK] /mcp senza auth: 401 ({r.headers.get('www-authenticate')})")
+        print(f"[OK] /mcp without auth: 401 ({r.headers.get('www-authenticate')})")
 
-        # 3) /mcp con token sbagliato -> 403
+        # 3) /mcp with wrong token -> 403
         r = await client.post(
             "/mcp",
             headers={"Authorization": "Bearer wrong-token"},
             json={"jsonrpc": "2.0", "id": 1, "method": "ping"},
         )
         assert r.status_code == 403, (r.status_code, r.text)
-        print("[OK] /mcp con token sbagliato: 403")
+        print("[OK] /mcp with wrong token: 403")
 
-        # 4) /mcp con token valido + initialize MCP
+        # 4) /mcp with valid token + initialize MCP
         r = await client.post(
             "/mcp",
             headers={
@@ -87,7 +87,7 @@ async def main() -> int:
         assert r.status_code in (200, 202), (r.status_code, r.text)
         print(f"[OK] /mcp initialize: HTTP {r.status_code}")
 
-        # 5) /mcp con token valido + tools/list
+        # 5) /mcp with valid token + tools/list
         r = await client.post(
             "/mcp",
             headers={
@@ -116,7 +116,7 @@ async def main() -> int:
         assert expected <= names, (names, expected)
         print(f"[OK] /mcp tools/list: {sorted(names)}")
 
-    print("\nTUTTO OK — server MCP Streamable HTTP funzionante.")
+    print("\nALL OK — MCP Streamable HTTPS server working.")
     return 0
 
 

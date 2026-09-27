@@ -24,10 +24,10 @@ TOKEN = "test-token-12345"
 
 @pytest.fixture()
 def wiki(tmp_path: Path) -> Path:
-    (tmp_path / "index.md").write_text("# Indice\n", encoding="utf-8")
+    (tmp_path / "index.md").write_text("# Index\n", encoding="utf-8")
     (tmp_path / "notes").mkdir()
     (tmp_path / "notes" / "a.md").write_text(
-        "# Nota A\nMCP è uno standard.\n", encoding="utf-8"
+        "# Note A\nMCP is a standard.\n", encoding="utf-8"
     )
     return tmp_path
 
@@ -152,7 +152,7 @@ def test_bearer_middleware_allows_health_without_auth() -> None:
         middleware=[Middleware(BearerAuthMiddleware, expected_token="secret")],
     )
     client = TestClient(app)
-    # /health è esente
+    # /health is exempt
     r = client.get("/health")
     assert r.status_code == 200
     r = client.get("/healthz")

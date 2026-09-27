@@ -1,13 +1,14 @@
-"""API REST minimale per il wiki KISS.
+"""Minimal REST API for the KISS wiki.
 
-Funziona da fallback al server MCP per i client che non supportano MCP.
-Espone gli stessi cinque operatori di base su HTTP, più ``/health`` e
-``/stats``. Avvio consigliato:
+Acts as a fallback to the MCP server for clients that do not support MCP.
+Exposes the same five base operators over HTTP, plus ``/health`` and
+``/stats``. Recommended start:
 
-    WIKI_MCP_TOKEN=segreto uvicorn rest_api:app --host 127.0.0.1 --port 8765
+    WIKI_MCP_TOKEN=secret uvicorn rest_api:app --host 127.0.0.1 --port 8765
 
-La root del wiki è configurabile via ``WIKI_ROOT``. L'accesso richiede il
-Bearer token ``WIKI_MCP_TOKEN``; senza token l'applicazione resta fail-closed.
+The wiki root is configurable via ``WIKI_ROOT``. Access requires the
+``WIKI_MCP_TOKEN`` Bearer token; without a token the application stays
+fail-closed.
 """
 
 from __future__ import annotations
@@ -33,8 +34,7 @@ DEFAULT_ROOT = Path(__file__).resolve().parent / "wiki"
 
 
 # ----------------------------------------------------------------------
-# Modelli Pydantic (definiti a livello di modulo per evitare forward
-# reference non risolti).
+# Pydantic models (defined at module level to avoid forward reference issues).
 # ----------------------------------------------------------------------
 
 
@@ -59,7 +59,7 @@ class PageContentOut(BaseModel):
 
 class SearchHit(BaseModel):
     path: str
-    line: int = Field(..., description="Numero di riga, 1-based.")
+    line: int = Field(..., description="Line number, 1-based.")
     matches: int
     snippet: str
 
@@ -82,7 +82,7 @@ class AppendNoteIn(BaseModel):
 
 
 # ----------------------------------------------------------------------
-# Factory dell'app
+# App factory
 # ----------------------------------------------------------------------
 
 
@@ -90,7 +90,7 @@ def create_app(
     root: os.PathLike[str] | str | None = None,
     token: str | None = None,
 ) -> FastAPI:
-    """Factory dell'app FastAPI, protetta dallo stesso token del server MCP."""
+    """FastAPI app factory, protected by the same token as the MCP server."""
     wiki_root = (
         Path(root).expanduser().resolve()
         if root
@@ -103,7 +103,7 @@ def create_app(
         title="Wiki KISS API",
         version="0.3.0",
         description=(
-            "Fallback HTTP per il wiki KISS. Specchia i tool MCP di base."
+            "Fallback HTTP for the KISS wiki. Mirrors the base MCP tools."
         ),
         middleware=[Middleware(
             BearerAuthMiddleware,
@@ -181,7 +181,7 @@ def create_app(
 
     @app.get("/search", response_model=SearchOut)
     def search(
-        q: str = Query(..., min_length=1, description="Testo da cercare."),  # noqa: B008
+        q: str = Query(..., min_length=1, description="Text to search for."),  # noqa: B008
         subdir: str | None = None,
         max_results: int = Query(50, ge=1, le=500),  # noqa: B008
         case_sensitive: bool = False,
