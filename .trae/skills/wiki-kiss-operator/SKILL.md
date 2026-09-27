@@ -35,11 +35,11 @@ Non invocare se:
 Eseguire, dall'interno della cartella del progetto:
 
 ```bash
-# Crea venv e installa dipendenze
-scripts/setup.sh
+# Installa, sceglie la root, genera il token e lascia HTTPS spento
+scripts/setup.sh --root ~/wiki-privato --https off
 
 # Crea venv, dipendenze base + dev (pytest, ruff)
-scripts/setup.sh --with-dev
+scripts/setup.sh --with-dev --root ~/wiki-privato --https off
 
 # Ricrea il venv da zero
 scripts/setup.sh --recreate
@@ -51,6 +51,8 @@ Lo script:
 - Installa pacchetti da `requirements.txt` (e `requirements-dev.txt` con
   `--with-dev`).
 - Verifica l'importazione dei moduli `wiki_core`, `mcp_server`, `rest_api`.
+- Installa i comandi `wiki-kiss` e `wiki-kiss-mcp`.
+- Genera `.wiki-kiss.env` (modo 0600) e restituisce il token configurato.
 
 ## Trasporti disponibili
 
@@ -60,14 +62,14 @@ Il progetto espone **tre trasporti** per parlare con i 5 tool MCP
 | Trasporto | Porta | Uso |
 | --- | --- | --- |
 | **stdio** | — | Client MCP locali (Claude Code, Claude Desktop, Open Cloud installato). Il client lancia il server come sottoprocesso. |
-| **Streamable HTTP** | 8766 (default) | Client MCP in cloud che supportano il protocollo MCP 2025. Autenticazione con Bearer token. |
-| **REST/HTTP** | 8765 (default) | Client HTTP generici (inclusi `claude.ai`, `perplexity.ai` via custom tool, script, browser). |
+| **Streamable HTTP su HTTPS** | 8766 (default) | Client MCP remoti. TLS e Bearer token sono obbligatori. |
+| **REST/HTTP loopback** | 8765 (default) | Client HTTP locali; stesso Bearer token, nessuna esposizione remota. |
 
 ### Quando usare quale
 
 - **Stdio**: agenti che girano sulla stessa macchina o via SSH/tunnel.
-- **Streamable HTTP**: agenti MCP-aware in cloud. È il futuro di MCP.
-- **REST**: client che non parlano MCP. Max compatibilità.
+- **Streamable HTTP su HTTPS**: agenti MCP-aware remoti.
+- **REST**: client locali che non parlano MCP.
 
 ## Avvio e arresto dei servizi
 
@@ -77,8 +79,8 @@ Il progetto espone **tre trasporti** per parlare con i 5 tool MCP
 # In background (default: 127.0.0.1:8765)
 scripts/start-rest.sh
 
-# Porta/host personalizzati
-scripts/start-rest.sh --host 0.0.0.0 --port 9000
+# Porta personalizzata; l'host deve restare loopback
+scripts/start-rest.sh --host 127.0.0.1 --port 9000
 
 # In foreground (Ctrl-C per fermare)
 scripts/start-rest.sh --foreground
@@ -107,29 +109,25 @@ sottoprocesso. Per test manuali:
 scripts/start-mcp.sh
 ```
 
-### Server MCP Streamable HTTP (per client cloud)
+### Server MCP Streamable HTTPS (per client remoti)
 
-Per esporre il server MCP via HTTPS, con autenticazione Bearer:
+Configura e avvia con TLS e Bearer obbligatori:
 
 ```bash
-# Senza auth (solo sviluppo locale)
-scripts/start-mcp-http.sh --host 0.0.0.0 --port 8766
-
-# Con autenticazione Bearer (produzione)
-WIKI_MCP_TOKEN='segreto-lungo-casuale' \
-    scripts/start-mcp-http.sh --host 127.0.0.1 --port 8766
+scripts/configure.sh --https on \
+  --host 0.0.0.0 \
+  --url https://wiki.example.com/mcp \
+  --cert /percorso/fullchain.pem \
+  --key /percorso/privkey.pem
 ```
 
-Il client MCP dovrà connettersi a `https://wiki.example.com/mcp` con
-header `Authorization: Bearer <token>`.
+Spegnimento immediato, senza interrompere CLI o MCP stdio:
 
-Modalità disponibili:
+```bash
+scripts/configure.sh --https off
+```
 
-- `--stateless` (default): ogni richiesta è indipendente. Ideale per
-  client semplici.
-- `--stateful`: mantiene sessioni MCP tra richieste.
-- `--json-response` (default): risposte JSON pure.
-- `--no-json-response`: usa Server-Sent Events.
+Non esiste una modalità MCP remota senza autenticazione o senza TLS.
 
 ### Variabili d'ambiente riconosciute
 
@@ -137,10 +135,13 @@ Modalità disponibili:
 | ---------------- | ----------- | -------------------------------- |
 | `WIKI_ROOT`      | `./wiki`    | Cartella del wiki                |
 | `WIKI_LOG_LEVEL` | `INFO`      | Livello di log Python            |
-| `WIKI_MCP_TOKEN` | (unset)     | Bearer token per /mcp HTTP       |
-| `WIKI_HTTP_HOST` | `127.0.0.1` | Host del server MCP HTTP         |
-| `WIKI_HTTP_PORT` | `8766`      | Porta del server MCP HTTP        |
-| `WIKI_MCP_PATH`  | `/mcp`      | Endpoint MCP                     |
+| `WIKI_MCP_TOKEN` | (obbligatorio HTTP) | Token unico MCP HTTPS/REST |
+| `WIKI_HTTPS_ENABLED` | `0` | Abilita MCP HTTPS |
+| `WIKI_HTTP_HOST` | `127.0.0.1` | Host del server MCP HTTPS |
+| `WIKI_HTTP_PORT` | `8766` | Porta del server MCP HTTPS |
+| `WIKI_MCP_URL` | (unset) | URL pubblica `https://.../mcp` |
+| `WIKI_TLS_CERT` | (unset) | Certificato PEM |
+| `WIKI_TLS_KEY` | (unset) | Chiave privata PEM |
 | `DEFAULT_HOST`   | `127.0.0.1` | Host REST (per `start-rest.sh`)  |
 | `DEFAULT_PORT`   | `8765`      | Porta REST (per `start-rest.sh`) |
 | `NO_COLOR`       | (unset)     | Disabilita colori nell'output    |
@@ -215,6 +216,18 @@ Streamable HTTP transport:
 - Header: `Accept: application/json, text/event-stream` (gestito dal client)
 - Versione protocollo: `2025-06-18`
 
+## Onboarding degli agenti
+
+Genera una skill personalizzata con URL/path e credenziali protette:
+
+```bash
+scripts/onboard-agent.sh --name customer-wiki --label "Customer Wiki"
+```
+
+La skill viene creata per default in `.agents/skills/generated/`, ignorata da
+Git. Dopo la rotazione del token rigenerarla con `--force`. Vedi
+`ONBOARDING.md`.
+
 ## Test e qualità
 
 ```bash
@@ -268,8 +281,9 @@ nel venv: `scripts/setup.sh --with-dev`.
 - **Aggiungere un nuovo client HTTP (cloud)**: condividi URL e token
   Bearer. Il client si connette a `https://.../mcp` con
   `Authorization: Bearer <token>`.
-- **Cambiare root del wiki**: sposta la cartella e imposta `WIKI_ROOT`
-  nel file `.env` o `.wiki-kiss.env`.
+- **Cambiare root del wiki**: `scripts/configure.sh --root /nuova/root`.
+- **Ruotare il token**: `scripts/configure.sh --rotate-token`, poi rigenera le
+  skill autorizzate con `scripts/onboard-agent.sh --force`.
 - **Backup**: `tar czf wiki-$(date +%F).tgz wiki/` (tutto è testo).
 - **Migrazione**: copia la cartella `wiki/` su un'altra macchina e
   riavvia i servizi: nessun database di cui preoccuparsi.
@@ -277,6 +291,6 @@ nel venv: `scripts/setup.sh --with-dev`.
 ## Filosofia operativa (KISS)
 
 - Niente database. Niente CMS. Versiona con Git.
-- Un solo servizio REST opzionale. Un server MCP stdio. Un server MCP HTTP opzionale.
+- Un solo servizio REST locale opzionale. Un server MCP stdio. Un server MCP HTTPS opzionale.
 - I contenuti sono leggibili anche con `cat` o un editor Markdown.
 - Le decisioni importanti vanno in `wiki/decisions/` come ADR.
