@@ -1,19 +1,36 @@
 [project]
 name = "llm-wiki-kiss"
-version = "0.1.0"
-description = "Wiki KISS self-hosted per agenti AI con accesso MCP e REST."
+version = "0.3.0"
+description = "Wiki KISS self-hosted per agenti AI con accesso MCP, CLI e REST."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { text = "AGPL-3.0-or-later" }
 authors = [
     { name = "Hornet SRL" }
 ]
+keywords = ["ai", "knowledge-base", "llm", "mcp", "wiki"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2.0.0",
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.27.0",
     "pydantic>=2.6.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/hor-net/llm-wiki-kiss"
+Documentation = "https://github.com/hor-net/llm-wiki-kiss#readme"
+Issues = "https://github.com/hor-net/llm-wiki-kiss/issues"
+Repository = "https://github.com/hor-net/llm-wiki-kiss.git"
 
 [project.optional-dependencies]
 dev = [
@@ -25,7 +42,7 @@ dev = [
 
 [project.scripts]
 wiki-kiss-mcp = "mcp_server.server:main"
-wiki-kiss-rest = "rest_api:app"
+wiki-kiss = "wiki_core.cli:main"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
