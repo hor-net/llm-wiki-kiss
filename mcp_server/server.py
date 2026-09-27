@@ -11,6 +11,7 @@ possa negoziare capabilities senza intervento manuale.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import os
@@ -218,7 +219,7 @@ def _register_handlers(server: Server, storage: WikiStorage) -> None:
         except KeyError as exc:
             raise McpError(f"Tool sconosciuto: {name}") from exc
         try:
-            payload = handler(storage, args)
+            payload = await asyncio.to_thread(handler, storage, args)
         except WikiStorageError as exc:
             LOGGER.warning("Tool %s fallito: %s", name, exc)
             raise McpError(str(exc)) from exc
@@ -367,7 +368,6 @@ def main(argv: list[str] | None = None) -> int:
         stream=sys.stderr,
     )
     try:
-        import asyncio
         asyncio.run(run(args.root))
     except KeyboardInterrupt:
         LOGGER.info("Server interrotto dall'utente.")

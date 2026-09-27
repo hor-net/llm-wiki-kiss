@@ -46,8 +46,8 @@ async def main() -> int:
         data = r.json()
         assert data["status"] == "ok"
         assert data["transport"] == "streamable-http"
-        assert data["auth"] is True
-        print(f"[OK] /health senza auth: {data}")
+        assert "wiki_root" not in data
+        print(f"[OK] /health senza auth e senza path locali: {data}")
 
         # 2) /mcp senza auth -> 401
         r = await client.post(

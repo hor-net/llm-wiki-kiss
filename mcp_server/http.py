@@ -12,19 +12,18 @@ Architettura
   gestisce la negoziazione del protocollo MCP 2025-06-18.
 * Tutta la logica di dominio resta in :mod:`wiki_core` (lo stesso
   ``WikiStorage`` usato dal server stdio).
-* Autenticazione opzionale con **Bearer token** via
+* Autenticazione obbligatoria con **Bearer token** via
   :class:`BearerAuthMiddleware`. Il token si configura con la variabile
   d'ambiente ``WIKI_MCP_TOKEN``.
 
 Esempio di avvio (vedi ``scripts/start-mcp-http.sh``):
 
-    WIKI_MCP_TOKEN=segreto uvicorn mcp_server.http:app \\
-        --host 0.0.0.0 --port 8766
+    scripts/configure.sh --https on --cert server.crt --key server.key
 """
 
 from __future__ import annotations
 
-import hmac
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -37,10 +36,10 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
-from starlette.types import ASGIApp, Receive, Scope, Send
 
 from wiki_core import WikiStorage, WikiStorageError
 
+from .auth import BearerAuthMiddleware
 from .server import (
     _HANDLERS,
     ALL_TOOLS,
@@ -52,69 +51,6 @@ LOGGER = logging.getLogger("mcp_server.http")
 
 DEFAULT_MCP_PATH = "/mcp"
 DEFAULT_MCP_HTTP_PORT = 8766
-
-
-# ----------------------------------------------------------------------
-# Autenticazione
-# ----------------------------------------------------------------------
-
-
-class BearerAuthMiddleware:
-    """Middleware ASGI puro che richiede un Bearer token per le route MCP.
-
-    Se ``expected_token`` è ``None`` o vuoto, l'autenticazione è
-    disabilitata (utile per sviluppo locale). Le route ``/health`` e
-    ``/healthz`` sono sempre esenti. La route ``/`` (info sul servizio)
-    richiede auth se un token è configurato: se vuoi renderla pubblica,
-    sposta l'endpoint di info sotto ``/health``.
-    """
-
-    EXEMPT_PATHS = {"/health", "/healthz"}
-
-    def __init__(self, app: ASGIApp, expected_token: str | None) -> None:
-        self.app = app
-        self.expected_token = (expected_token or "").strip() or None
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-        if self.expected_token is None:
-            await self.app(scope, receive, send)
-            return
-        path = scope.get("path", "")
-        if path in self.EXEMPT_PATHS:
-            await self.app(scope, receive, send)
-            return
-        # Estrai l'header authorization dallo scope ASGI.
-        headers = dict(scope.get("headers") or [])
-        auth = headers.get(b"authorization", b"").decode("latin-1", errors="replace")
-        if not auth.lower().startswith("bearer "):
-            await self._reject(send, 401, "missing_bearer_token")
-            return
-        presented = auth[7:].strip()
-        if not hmac.compare_digest(presented, self.expected_token):
-            await self._reject(send, 403, "invalid_bearer_token")
-            return
-        await self.app(scope, receive, send)
-
-    @staticmethod
-    async def _reject(send: Send, status: int, error: str) -> None:
-        import json
-
-        body = json.dumps({"error": error}).encode("utf-8")
-        await send(
-            {
-                "type": "http.response.start",
-                "status": status,
-                "headers": [
-                    (b"content-type", b"application/json"),
-                    (b"content-length", str(len(body)).encode("ascii")),
-                    (b"www-authenticate", b"Bearer"),
-                ],
-            }
-        )
-        await send({"type": "http.response.body", "body": body, "more_body": False})
 
 
 # ----------------------------------------------------------------------
@@ -140,7 +76,7 @@ def _build_mcp_server(wiki_root: str | os.PathLike[str]) -> Server:
         except KeyError as exc:
             raise ValueError(f"Tool sconosciuto: {name}") from exc
         try:
-            payload = handler(storage, args)
+            payload = await asyncio.to_thread(handler, storage, args)
         except WikiStorageError as exc:
             LOGGER.warning("Tool %s fallito: %s", name, exc)
             raise ValueError(str(exc)) from exc
@@ -175,8 +111,8 @@ def create_app(
     wiki_root:
         Cartella del wiki. Default: ``WIKI_ROOT`` env o ``./wiki``.
     token:
-        Bearer token atteso. Default: ``WIKI_MCP_TOKEN`` env. Se nullo,
-        l'autenticazione è disabilitata.
+        Bearer token atteso. Default: ``WIKI_MCP_TOKEN`` env. Se assente,
+        il server resta fail-closed e risponde 503.
     mcp_path:
         Path HTTP su cui montare l'endpoint MCP (default ``/mcp``).
     json_response:
@@ -192,7 +128,7 @@ def create_app(
         mcp_path,
         json_response,
         stateless,
-        "off" if not expected_token else "on",
+        "missing (fail-closed)" if not expected_token else "on",
     )
 
     mcp_server = _build_mcp_server(root)
@@ -209,13 +145,7 @@ def create_app(
 
     async def health(_request: Request) -> JSONResponse:
         return JSONResponse(
-            {
-                "status": "ok",
-                "transport": "streamable-http",
-                "wiki_root": str(root),
-                "mcp_path": mcp_path,
-                "auth": bool(expected_token),
-            }
+            {"status": "ok", "transport": "streamable-http"}
         )
 
     async def _root_index(_request: Request) -> JSONResponse:
@@ -240,16 +170,11 @@ def create_app(
         ],
     )
 
-    # Auth middleware wrappa inner_app. Solo /health e /healthz sono esenti.
-    # Per il resto (incluso / e /mcp), se il token è configurato, è richiesto.
+    # Il middleware resta fail-closed se il token non è configurato.
     final_app = Starlette(
         lifespan=lifespan,  # stesso lifespan dell'inner, con session_manager.run()
         routes=[Mount("/", app=inner_app)],
-        middleware=[
-            Middleware(BearerAuthMiddleware, expected_token=expected_token)
-        ]
-        if expected_token
-        else [],
+        middleware=[Middleware(BearerAuthMiddleware, expected_token=expected_token)],
     )
     return final_app
 
@@ -278,7 +203,7 @@ def main() -> int:
         prog="wiki-kiss-mcp-http",
         description=(
             "Server MCP Streamable HTTP (per client MCP in cloud). "
-            "Supporta autenticazione Bearer via WIKI_MCP_TOKEN."
+            "Richiede autenticazione Bearer via WIKI_MCP_TOKEN."
         ),
     )
     parser.add_argument("--host", default=os.environ.get("WIKI_HTTP_HOST", "127.0.0.1"))
@@ -291,7 +216,18 @@ def main() -> int:
     parser.add_argument("--json-response", action="store_true", default=True)
     parser.add_argument("--no-json-response", dest="json_response", action="store_false")
     parser.add_argument("--token", default=None, help="Bearer token (default: $WIKI_MCP_TOKEN).")
+    parser.add_argument("--cert", default=os.environ.get("WIKI_TLS_CERT"))
+    parser.add_argument("--key", default=os.environ.get("WIKI_TLS_KEY"))
     args = parser.parse_args()
+    effective_token = (args.token or _resolve_token() or "").strip()
+    if os.environ.get("WIKI_HTTPS_ENABLED", "0") != "1":
+        parser.error("Interfaccia HTTPS disabilitata; usa scripts/configure.sh --https on.")
+    if not effective_token:
+        parser.error("Bearer token obbligatorio: usa --token o WIKI_MCP_TOKEN.")
+    if not args.cert or not os.path.isfile(args.cert):
+        parser.error("Certificato TLS mancante o non leggibile.")
+    if not args.key or not os.path.isfile(args.key):
+        parser.error("Chiave TLS mancante o non leggibile.")
 
     logging.basicConfig(
         level=args.log_level.upper(),
@@ -300,7 +236,7 @@ def main() -> int:
 
     application = create_app(
         wiki_root=args.root,
-        token=args.token,
+        token=effective_token,
         mcp_path=args.mcp_path,
         json_response=args.json_response,
         stateless=args.stateless,
@@ -311,6 +247,8 @@ def main() -> int:
         port=args.port,
         log_level=args.log_level.lower(),
         access_log=True,
+        ssl_certfile=args.cert,
+        ssl_keyfile=args.key,
     )
     return 0
 

@@ -13,28 +13,57 @@ sys.path.insert(0, str(ROOT))
 
 from rest_api import create_app  # noqa: E402
 
+TOKEN = "rest-test-token-12345"
+
 
 @pytest.fixture()
-def client(tmp_path: Path) -> TestClient:
+def app(tmp_path: Path):
     (tmp_path / "index.md").write_text("# Indice\n", encoding="utf-8")
     (tmp_path / "notes").mkdir()
     (tmp_path / "notes" / "a.md").write_text(
         "# Nota A\nContiene MCP e basta.\n", encoding="utf-8"
     )
-    app = create_app(root=tmp_path)
-    return TestClient(app)
+    return create_app(root=tmp_path, token=TOKEN)
 
 
-def test_health(client: TestClient) -> None:
+@pytest.fixture()
+def client(app) -> TestClient:
+    return TestClient(app, headers={"Authorization": f"Bearer {TOKEN}"})
+
+
+def test_health(client: TestClient, tmp_path: Path) -> None:
     res = client.get("/health")
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "ok"
+    assert res.headers["cache-control"] == "no-store"
+    assert "root" not in data
+    assert str(tmp_path) not in res.text
+
+
+def test_rest_requires_bearer_token(app) -> None:
+    unauthenticated = TestClient(app)
+    assert unauthenticated.get("/health").status_code == 200
+    assert unauthenticated.get("/pages").status_code == 401
+    assert unauthenticated.get("/docs").status_code == 401
+    assert unauthenticated.get(
+        "/pages", headers={"Authorization": "Bearer wrong"}
+    ).status_code == 403
+
+
+def test_rest_without_configured_token_is_fail_closed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("WIKI_MCP_TOKEN", raising=False)
+    (tmp_path / "index.md").write_text("# Indice\n", encoding="utf-8")
+    application = create_app(root=tmp_path, token=None)
+    assert TestClient(application).get("/health").status_code == 503
 
 
 def test_list_pages(client: TestClient) -> None:
     res = client.get("/pages")
     assert res.status_code == 200
+    assert res.headers["cache-control"] == "no-store"
     data = res.json()
     assert data["count"] >= 2
     paths = {p["path"] for p in data["pages"]}

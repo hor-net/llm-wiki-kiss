@@ -40,7 +40,8 @@ def app(wiki: Path):
 
 
 @pytest.fixture()
-def app_no_auth(wiki: Path):
+def app_no_auth(wiki: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("WIKI_MCP_TOKEN", raising=False)
     return create_app(
         wiki_root=wiki, token=None, json_response=True, stateless=True
     )
@@ -77,8 +78,8 @@ def test_factory_with_explicit_token_overrides_env(
 # ----------------------------------------------------------------------
 
 
-def test_bearer_middleware_passes_when_disabled() -> None:
-    """Se il token atteso è None, il middleware non blocca nulla."""
+def test_bearer_middleware_fails_closed_without_token() -> None:
+    """Senza token configurato nessuna richiesta deve raggiungere l'app."""
     from starlette.applications import Starlette
     from starlette.middleware import Middleware
     from starlette.requests import Request
@@ -93,8 +94,8 @@ def test_bearer_middleware_passes_when_disabled() -> None:
     )
     client = TestClient(app)
     r = client.get("/")
-    assert r.status_code == 200
-    assert r.text == "ok"
+    assert r.status_code == 503
+    assert r.json()["error"] == "access_token_not_configured"
 
 
 def test_bearer_middleware_requires_token() -> None:
@@ -120,6 +121,21 @@ def test_bearer_middleware_requires_token() -> None:
     # Token giusto
     r = client.get("/", headers={"Authorization": "Bearer secret"})
     assert r.status_code == 200
+
+
+def test_factory_without_token_is_fail_closed(app_no_auth) -> None:
+    with TestClient(app_no_auth) as client:
+        assert client.get("/health").status_code == 503
+        assert client.get("/mcp").status_code == 503
+
+
+def test_health_does_not_expose_wiki_root(app, wiki: Path) -> None:
+    with TestClient(app) as client:
+        response = client.get("/health")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert str(wiki) not in response.text
+    assert "wiki_root" not in response.json()
 
 
 def test_bearer_middleware_allows_health_without_auth() -> None:

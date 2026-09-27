@@ -10,11 +10,12 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 VENV_PYTHON = ROOT / ".venv" / "bin" / "python"
-WIKI = ROOT / "wiki"
+PYTHON = VENV_PYTHON if VENV_PYTHON.exists() else Path(sys.executable)
 
 
 def send(process: subprocess.Popen, payload: dict) -> dict:
@@ -26,7 +27,12 @@ def send(process: subprocess.Popen, payload: dict) -> dict:
 
 
 def main() -> int:
-    cmd = [str(VENV_PYTHON), "-m", "mcp_server", "--root", str(WIKI)]
+    temporary_wiki = tempfile.TemporaryDirectory(prefix="wiki-kiss-smoke-")
+    wiki = Path(temporary_wiki.name)
+    (wiki / "notes").mkdir()
+    (wiki / "index.md").write_text("# Indice\n\nMCP locale.\n", encoding="utf-8")
+
+    cmd = [str(PYTHON), "-m", "mcp_server", "--root", str(wiki)]
     proc = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE,
@@ -146,6 +152,7 @@ def main() -> int:
             proc.wait(timeout=5)
         except subprocess.TimeoutExpired:
             proc.kill()
+        temporary_wiki.cleanup()
 
 
 if __name__ == "__main__":

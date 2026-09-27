@@ -4,10 +4,10 @@ Funziona da fallback al server MCP per i client che non supportano MCP.
 Espone gli stessi cinque operatori di base su HTTP, più ``/health`` e
 ``/stats``. Avvio consigliato:
 
-    uvicorn rest_api:app --host 127.0.0.1 --port 8765
+    WIKI_MCP_TOKEN=segreto uvicorn rest_api:app --host 127.0.0.1 --port 8765
 
-La root del wiki è configurabile via variabile d'ambiente ``WIKI_ROOT`` o
-argomento ``--root`` di Uvicorn (vedi ``create_app``).
+La root del wiki è configurabile via ``WIKI_ROOT``. L'accesso richiede il
+Bearer token ``WIKI_MCP_TOKEN``; senza token l'applicazione resta fail-closed.
 """
 
 from __future__ import annotations
@@ -17,13 +17,16 @@ from pathlib import Path
 
 from fastapi import Body, FastAPI, HTTPException, Query  # noqa: B008
 from pydantic import BaseModel, Field
+from starlette.middleware import Middleware
 
+from mcp_server.auth import BearerAuthMiddleware
 from wiki_core import (
     InvalidPathError,
     PageAlreadyExistsError,
     PageNotFoundError,
     WikiStorage,
     WikiStorageError,
+    WriteLockTimeoutError,
 )
 
 DEFAULT_ROOT = Path(__file__).resolve().parent / "wiki"
@@ -83,26 +86,34 @@ class AppendNoteIn(BaseModel):
 # ----------------------------------------------------------------------
 
 
-def create_app(root: os.PathLike[str] | str | None = None) -> FastAPI:
-    """Factory dell'app FastAPI."""
+def create_app(
+    root: os.PathLike[str] | str | None = None,
+    token: str | None = None,
+) -> FastAPI:
+    """Factory dell'app FastAPI, protetta dallo stesso token del server MCP."""
     wiki_root = (
         Path(root).expanduser().resolve()
         if root
         else Path(os.environ.get("WIKI_ROOT", DEFAULT_ROOT)).expanduser().resolve()
     )
     storage = WikiStorage(wiki_root)
+    expected_token = token if token is not None else os.environ.get("WIKI_MCP_TOKEN")
 
     app = FastAPI(
         title="Wiki KISS API",
-        version="0.1.0",
+        version="0.3.0",
         description=(
             "Fallback HTTP per il wiki KISS. Specchia i tool MCP di base."
         ),
+        middleware=[Middleware(
+            BearerAuthMiddleware,
+            expected_token=expected_token,
+        )],
     )
 
     @app.get("/health")
     def health() -> dict:
-        return {"status": "ok", "root": str(wiki_root)}
+        return {"status": "ok", "transport": "rest"}
 
     @app.get("/stats")
     def stats() -> dict:
@@ -152,6 +163,10 @@ def create_app(root: os.PathLike[str] | str | None = None) -> FastAPI:
             )
         except PageAlreadyExistsError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except WriteLockTimeoutError as exc:
+            raise HTTPException(
+                status_code=503, detail=str(exc), headers={"Retry-After": "1"}
+            ) from exc
         except InvalidPathError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except WikiStorageError as exc:
@@ -199,6 +214,10 @@ def create_app(root: os.PathLike[str] | str | None = None) -> FastAPI:
                 rel_path=body.path,
                 heading=body.heading,
             )
+        except WriteLockTimeoutError as exc:
+            raise HTTPException(
+                status_code=503, detail=str(exc), headers={"Retry-After": "1"}
+            ) from exc
         except InvalidPathError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except WikiStorageError as exc:
