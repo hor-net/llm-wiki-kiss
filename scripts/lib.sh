@@ -66,11 +66,13 @@ ensure_dirs() {
 }
 
 # Carica variabili d'ambiente da .env o .wiki-kiss.env se presenti.
+# I log informativi vanno su stderr per non sporcare lo stdout dei comandi.
 load_env_file() {
   local f
-  for f in "${PROJECT_ROOT}/.wiki-kiss.env" "${PROJECT_ROOT}/.env"; do
+  # .wiki-kiss.env è la configurazione gestita e prevale sul generico .env.
+  for f in "${PROJECT_ROOT}/.env" "${PROJECT_ROOT}/.wiki-kiss.env"; do
     if [[ -f "${f}" ]]; then
-      log_info "Carico variabili da ${f}"
+      log_info "Carico variabili da ${f}" >&2
       # Esporta solo righe KEY=VALUE (no export obbligatorio, no commenti).
       set -a
       # shellcheck disable=SC1090

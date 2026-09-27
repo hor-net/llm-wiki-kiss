@@ -19,6 +19,15 @@ Opzioni:
   --no-pip           Salta l'upgrade di pip
   --bootstrap-pip    Se pip manca nel venv, prova a installarlo con
                      ensurepip (poi get-pip.py da PyPA). Vedi note sotto.
+  --root PATH        Configura la root del wiki
+  --token TOKEN      Usa questo token invece di generarne uno
+  --https on|off     Configura e applica lo stato dell'interfaccia MCP HTTPS
+  --host HOST        Host MCP HTTPS (default: 127.0.0.1)
+  --port PORT        Porta MCP HTTPS (default: 8766)
+  --url URL          URL pubblica MCP, es. https://wiki.example.com/mcp
+  --cert PATH        Certificato TLS PEM (necessario con --https on)
+  --key PATH         Chiave TLS PEM (necessaria con --https on)
+  --no-config        Non creare o aggiornare .wiki-kiss.env
   -h, --help         Mostra questo messaggio
 
 ${C_BOLD}Note:${C_RESET}
@@ -39,6 +48,15 @@ RECREATE=0
 WITH_DEV=0
 NO_PIP=0
 BOOTSTRAP_PIP=0
+CONFIG_ROOT=""
+CONFIG_TOKEN=""
+CONFIG_HTTPS=""
+CONFIG_HOST=""
+CONFIG_PORT=""
+CONFIG_URL=""
+CONFIG_CERT=""
+CONFIG_KEY=""
+CONFIGURE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -46,6 +64,15 @@ while [[ $# -gt 0 ]]; do
     --with-dev) WITH_DEV=1 ;;
     --no-pip)   NO_PIP=1 ;;
     --bootstrap-pip) BOOTSTRAP_PIP=1 ;;
+    --root)      CONFIG_ROOT="$2"; shift ;;
+    --token)     CONFIG_TOKEN="$2"; shift ;;
+    --https)     CONFIG_HTTPS="$2"; shift ;;
+    --host)      CONFIG_HOST="$2"; shift ;;
+    --port)      CONFIG_PORT="$2"; shift ;;
+    --url)       CONFIG_URL="$2"; shift ;;
+    --cert)      CONFIG_CERT="$2"; shift ;;
+    --key)       CONFIG_KEY="$2"; shift ;;
+    --no-config) CONFIGURE=0 ;;
     -h|--help)  usage; exit 0 ;;
     *) log_error "Argomento sconosciuto: $1"; usage; exit 2 ;;
   esac
@@ -147,6 +174,7 @@ fi
 
 log_step "Installo dipendenze di base"
 "${VENV_PYTHON}" -m pip install -r "${PROJECT_ROOT}/requirements.txt"
+"${VENV_PYTHON}" -m pip install --no-deps -e "${PROJECT_ROOT}"
 
 if [[ "${WITH_DEV}" -eq 1 ]]; then
   log_step "Installo dipendenze di sviluppo"
@@ -156,6 +184,23 @@ fi
 log_step "Verifico l'installazione"
 "${VENV_PYTHON}" -c "import mcp, fastapi, uvicorn, pydantic; print('mcp, fastapi, uvicorn, pydantic importati')"
 "${VENV_PYTHON}" -c "import wiki_core, mcp_server, mcp_server.http, rest_api; print('moduli applicativi OK')"
+
+if [[ "${CONFIGURE}" -eq 1 ]]; then
+  log_step "Configuro root, token e interfaccia HTTPS"
+  CONFIG_ARGS=()
+  [[ -n "${CONFIG_ROOT}" ]] && CONFIG_ARGS+=(--root "${CONFIG_ROOT}")
+  [[ -n "${CONFIG_TOKEN}" ]] && CONFIG_ARGS+=(--token "${CONFIG_TOKEN}")
+  [[ -n "${CONFIG_HTTPS}" ]] && CONFIG_ARGS+=(--https "${CONFIG_HTTPS}")
+  [[ -n "${CONFIG_HOST}" ]] && CONFIG_ARGS+=(--host "${CONFIG_HOST}")
+  [[ -n "${CONFIG_PORT}" ]] && CONFIG_ARGS+=(--port "${CONFIG_PORT}")
+  [[ -n "${CONFIG_URL}" ]] && CONFIG_ARGS+=(--url "${CONFIG_URL}")
+  [[ -n "${CONFIG_CERT}" ]] && CONFIG_ARGS+=(--cert "${CONFIG_CERT}")
+  [[ -n "${CONFIG_KEY}" ]] && CONFIG_ARGS+=(--key "${CONFIG_KEY}")
+  if [[ -z "${CONFIG_HTTPS}" ]]; then
+    CONFIG_ARGS+=(--no-apply)
+  fi
+  "${PROJECT_ROOT}/scripts/configure.sh" "${CONFIG_ARGS[@]}"
+fi
 
 log_ok "Setup completato."
 log_info "Attiva il venv con: source ${VENV_DIR}/bin/activate"

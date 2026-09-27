@@ -20,7 +20,10 @@ dist/
 var/
 *.log
 .env
+.wiki-kiss.env
+.agents/skills/generated/
 
-# file temporanei
+# file temporanei e lock runtime
+.wiki-kiss.lock
 *.tmp
 *.swp

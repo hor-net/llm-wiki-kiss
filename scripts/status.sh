@@ -28,11 +28,13 @@ load_env_file
 printf "%s%sWiki KISS — stato servizi%s\n" "${C_BOLD}" "${C_CYAN}" "${C_RESET}"
 printf "  project root: %s\n" "${PROJECT_ROOT}"
 printf "  wiki root:    %s\n" "$(detect_wiki_root)"
+printf "  MCP HTTPS:    %s\n" \
+  "$( [[ "${WIKI_HTTPS_ENABLED:-0}" == "1" ]] && printf 'abilitato (%s)' "${WIKI_MCP_URL:-https://${WIKI_HTTP_HOST:-127.0.0.1}:${WIKI_HTTP_PORT:-8766}/mcp}" || printf 'disabilitato' )"
 printf "  venv:         %s\n" \
   "$( [[ -x "${VENV_PYTHON}" ]] && printf "%s" "${VENV_PYTHON}" || printf "(non trovato — esegui scripts/setup.sh)" )"
 echo
 print_status_line "mcp"      "Server MCP (stdio) per agenti AI locali"
-print_status_line "mcp-http" "Server MCP Streamable HTTP (per client cloud)"
+print_status_line "mcp-http" "Server MCP Streamable HTTPS (rete opzionale)"
 print_status_line "rest"     "API REST fallback (uvicorn)"
 echo
 if [[ -d "${LOG_DIR}" ]]; then
