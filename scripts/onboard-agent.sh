@@ -273,6 +273,46 @@ access.
 5. Cite source page paths in answers based on wiki content.
 6. If information is absent, say so instead of inventing it.
 
+## Wiki conventions
+
+Folder layout (create these when missing):
+
+- `projects/<name>.md` — project documentation, roadmaps, specs.
+- `notes/<YYYY-MM-DD>-<short-slug>.md` — quick notes, ideas, observations.
+- `decisions/<NNNN>-<short-slug>.md` — Architecture Decision Records.
+- `references/<topic>.md` — external links, sources, articles.
+- `assets/` — images, PDFs, audio (binary, not indexed).
+- `logs/<YYYY-MM-DD>.md` — append-only operational logs.
+
+Naming rules:
+
+- Filenames in `kebab-case` (lowercase, digits, hyphens).
+- Every page starts with a single level-1 title (`# Title`).
+- Internal links are **relative**: `[other](../notes/idea.md)`.
+- No frontmatter required; keep metadata in the body when needed.
+- `decisions/NNNN-*.md` uses a zero-padded counter to preserve order.
+- `logs/` and `notes/` are date-prefixed for chronological sorting.
+
+Content rules:
+
+- Markdown only (`.md`); keep one concept per page.
+- Cite sources and link related pages with relative paths.
+- Avoid duplicating content: prefer linking to the canonical page.
+- Keep private data (credentials, customer info) out of the wiki.
+- When information is uncertain, write "TODO" or link to an open question
+  instead of guessing.
+
+## Editing rules
+
+- Always run `search` before writing; never duplicate an existing page.
+- Use `write_page` with `overwrite=false` for new pages. Only set
+  `overwrite=true` after reading the existing content and confirming the
+  intent with the user.
+- For incremental updates use `append_note`; it preserves the existing
+  page and adds a timestamped block.
+- For operational events ("the server restarted", "we decided X"),
+  prefer `append_note` with `path` omitted so it lands in the daily log.
+
 ## Local CLI fallback
 
 Use this only when running on the same machine as the wiki:
