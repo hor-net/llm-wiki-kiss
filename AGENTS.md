@@ -1,190 +1,204 @@
 # Agents — llm-wiki-kiss
 
-Questo documento descrive l'ecosistema **llm-wiki-kiss**, un wiki **KISS** (Keep It Simple, Stupid) self-hosted per agenti AI. È progettato per offrire una knowledge base persistente, portabile e controllabile al 100%, accessibile a diversi modelli tramite **MCP** (Model Context Protocol).
+This document describes the **llm-wiki-kiss** ecosystem: a **KISS** (Keep It
+Simple, Stupid) self-hosted wiki for AI agents. It is designed to offer a
+persistent, portable, 100% user-controlled knowledge base, accessible to
+different models through **MCP** (Model Context Protocol).
 
 ---
 
-## Panoramica
+## Overview
 
-**llm-wiki-kiss** trasforma file Markdown statici in una source di verità condivisa tra agenti AI. Risolve il problema della conoscenza frammentata nei tool, negli appunti e nelle conversazioni: tutto è persistentemente archiviato in filesystem e uniformemente esposto tramite un contratto MCP standardizzato.
+**llm-wiki-kiss** turns static Markdown files into a shared source of truth
+across AI agents. It solves the problem of knowledge fragmented across tools,
+notebooks and conversations: everything is persistently archived on the
+filesystem and uniformly exposed through a standardised MCP contract.
 
-### Filosofia
-- **KISS**: nessun database, nessun CMS complesso, solo file e link.
-- **Persistente**: il wiki sopravvive tra sessioni di agente.
-- **Portabile**: una cartella tar.gz è tutto il backup necessario.
-- **Multicast**: lo stesso contenuto serve Claude Code, Open Cloud, Perplexity, script Python, ecc.
+### Philosophy
+- **KISS**: no database, no complex CMS, just files and links.
+- **Persistent**: the wiki survives between agent sessions.
+- **Portable**: a `tar.gz` of the folder is the whole backup.
+- **Multicast**: the same content serves Claude Code, Open Cloud, Perplexity,
+  Python scripts, etc.
 
 ---
 
-## Architettura
+## Architecture
 
 ```
 llm-wiki-kiss/
-├── wiki/                    # dati Markdown (il tuo wiki)
-│   ├── index.md            # punto d'entrata principale
-│   ├── projects/           # documentazione di progetto
-│   ├── notes/              # appunti, idee, osservazioni rapide
-│   ├── decisions/          # ADR e decisioni tecniche
-│   ├── references/         # link e fonti esterne
-│   ├── assets/             # immagini, allegati
-│   └── logs/               # log append-only (YYYY-MM-DD.md)
-├── wiki_core/              # storage, validazione, ricerca, locking e CLI
-├── mcp_server/             # MCP stdio + Streamable HTTP su TLS, single-wiki
-├── rest_api.py             # fallback HTTP FastAPI
-├── scripts/                # setup, configure, CLI e gestione servizi
-├── tests/                  # pytest + smoke test MCP
-├── CONFIGURATION.md        # root, token, TLS e toggle HTTPS
-├── ONBOARDING.md           # skill personalizzate con connessione privata
-├── .trae/skills/           # template SKILL.md per agenti AI
-└── pyproject.toml          # metadato progetto, dipendenze, tooling
+├── wiki/                    # Markdown data (your wiki)
+│   ├── index.md            # main entry point
+│   ├── projects/           # project documentation
+│   ├── notes/              # quick notes, ideas, observations
+│   ├── decisions/          # ADRs and technical decisions
+│   ├── references/         # external links and sources
+│   ├── assets/             # images, attachments
+│   └── logs/               # append-only logs (YYYY-MM-DD.md)
+├── wiki_core/              # storage, validation, search, locking and CLI
+├── mcp_server/             # MCP stdio + Streamable HTTP over TLS, single-wiki
+├── rest_api.py             # FastAPI HTTP fallback
+├── scripts/                # setup, configure, CLI and service management
+├── tests/                  # pytest + MCP smoke tests
+├── CONFIGURATION.md        # root, token, TLS and HTTPS toggle
+├── ONBOARDING.md           # per-instance skills with private connection
+├── .agents/skills/         # SKILL.md templates for AI agents
+└── pyproject.toml          # project metadata, dependencies, tooling
 ```
 
-### Strumenti MCP (5 in totale)
+### MCP tools (5 total)
 
-| Tool | Descrizione | Tipo |
+| Tool | Description | Type |
 |------|-------------|------|
-| `list_pages` | Elenca pagine nel wiki (`subdir` opzionale). | Lettura |
-| `read_page` | Legge il contenuto completo di una pagina. | Lettura |
-| `search` | Full-text search case-insensitive con snippet e numero di riga. | Lettura |
-| `write_page` | Crea o sovrascrive una pagina e rigenera gli indici. | Scrittura protetta |
-| `append_note` | Accoda testo a una pagina o al log giornaliero e rigenera gli indici. | Scrittura protetta |
+| `list_pages` | Lists pages in the wiki (optional `subdir`). | Read |
+| `read_page` | Reads the full content of a page. | Read |
+| `search` | Case-insensitive full-text search with snippet and line number. | Read |
+| `write_page` | Creates or overwrites a page and regenerates indexes. | Protected write |
+| `append_note` | Appends text to a page or the daily log and regenerates indexes. | Protected write |
 
-### Server e Porte
+### Servers and ports
 
-- **MCP stdio**: processo locale, per agent che usano IPC.
-- **MCP Streamable HTTP su HTTPS** (opzionale): TLS e Bearer obbligatori.
-- **REST API FastAPI**: fallback opzionale, protetto dallo stesso Bearer.
+- **MCP stdio**: local process, for agents using IPC.
+- **MCP Streamable HTTP over HTTPS** (optional): TLS and Bearer are mandatory.
+- **REST API (FastAPI)**: optional fallback, protected by the same Bearer.
 
-Default: `127.0.0.1:8765` (REST locale), `127.0.0.1:8766` (MCP HTTPS).
+Defaults: `127.0.0.1:8765` (local REST), `127.0.0.1:8766` (MCP HTTPS).
 
-### Accesso locale offline
+### Offline local access
 
-- MCP `stdio`: `python -m mcp_server --root /percorso/wiki`; comunica solo su
-  stdin/stdout e non apre socket.
-- CLI: `scripts/wiki.sh` oppure `python -m wiki_core.cli`; offre `list`, `read`,
-  `search`, `write`, `append`, `stats` e `rebuild-indexes`.
-- MCP stdio e CLI non richiedono `WIKI_MCP_TOKEN`; la protezione è affidata ai
-  permessi dell'utente e del filesystem locale.
-- Tutte le mutazioni passano comunque da `WikiStorage` e rispettano il lock.
+- MCP `stdio`: `python -m mcp_server --root /path/wiki`; it only talks over
+  `stdin`/`stdout` and never opens sockets.
+- CLI: `scripts/wiki.sh` or `python -m wiki_core.cli`; exposes `list`,
+  `read`, `search`, `write`, `append`, `stats` and `rebuild-indexes`.
+- MCP stdio and the CLI do not require `WIKI_MCP_TOKEN`; protection is
+  delegated to the user and filesystem permissions.
+- All mutations still go through `WikiStorage` and respect the lock.
 
-### Modello di isolamento
+### Isolation model
 
-Ogni processo o container serve esattamente una root `WIKI_ROOT` e usa un
-solo token `WIKI_MCP_TOKEN` per entrambi i trasporti HTTP. Clienti o wiki differenti devono essere
-eseguiti in container separati, con filesystem, token e porta indipendenti.
-Non introdurre routing multi-tenant o registri di wiki nel processo.
+Each process or container serves exactly one `WIKI_ROOT` and uses a single
+`WIKI_MCP_TOKEN` for both HTTP transports. Different customers or wikis must
+run in separate containers, with independent filesystems, tokens and ports.
+Do not introduce multi-tenant routing or wiki registries inside the process.
 
-### Setup e configurazione
+### Setup and configuration
 
-- `scripts/setup.sh --root PATH --https off` installa il progetto, crea la root,
-  genera il token e stampa `WIKI_MCP_TOKEN=...`.
-- `scripts/configure.sh` salva la configurazione in `.wiki-kiss.env` con modo
-  `0600`; questo file è ignorato da Git e prevale su `.env`.
-- HTTPS è spento per default. `configure.sh --https on --cert CERT --key KEY`
-  salva e avvia il servizio; `configure.sh --https off` lo arresta e disabilita.
-- `start-mcp-http.sh` deve rifiutare l'avvio senza flag abilitato, token,
-  certificato o chiave. Non aggiungere fallback HTTP in chiaro.
-- Per bind wildcard (`0.0.0.0`/`::`) è obbligatoria `WIKI_MCP_URL`, usata
-  dall'onboarding per configurare i client.
-- La REST API è ammessa solo in loopback; l'accesso remoto passa da MCP HTTPS.
-- Rotazione token: `configure.sh --rotate-token`; lettura esplicita:
+- `scripts/setup.sh --root PATH --https off` installs the project, creates
+  the root, generates the token and prints `WIKI_MCP_TOKEN=...`.
+- `scripts/configure.sh` writes the configuration into `.wiki-kiss.env`
+  with mode `0600`; the file is git-ignored and takes precedence over `.env`.
+- HTTPS is off by default. `configure.sh --https on --cert CERT --key KEY`
+  persists the configuration and starts the service; `configure.sh --https
+  off` stops it and disables it.
+- `start-mcp-http.sh` must refuse to start without the enable flag, the
+  token, the certificate or the key. Do not add cleartext HTTP fallbacks.
+- For wildcard binding (`0.0.0.0`/`::`) `WIKI_MCP_URL` is mandatory; the
+  onboarding script uses it to configure clients.
+- The REST API is allowed only on the loopback; remote access goes through
+  MCP HTTPS.
+- Token rotation: `configure.sh --rotate-token`; explicit read:
   `configure.sh --show-token`.
-- Guida operativa: [`CONFIGURATION.md`](CONFIGURATION.md).
+- Operational guide: [`CONFIGURATION.md`](CONFIGURATION.md).
 
-### Onboarding degli agenti
+### Agent onboarding
 
-- `scripts/onboard-agent.sh` genera una skill Agent Skills personalizzata.
-- Output predefinito: `.agents/skills/generated/<name>/`, ignorato da Git.
-- `references/connection.json` e `mcp-config.json` contengono root, URL e token;
-  directory e file devono mantenere rispettivamente modi `0700` e `0600`.
-- La modalità `auto` sceglie HTTPS quando attivo, altrimenti MCP stdio locale.
-- Non stampare il token durante l'onboarding e non committare skill generate.
-- Dopo `configure.sh --rotate-token`, rigenerare le skill autorizzate con
-  `--force`; eliminare quelle revocate.
-- Specifica e procedure: [`ONBOARDING.md`](ONBOARDING.md).
+- `scripts/onboard-agent.sh` generates a personalised Agent Skills entry.
+- Default output: `.agents/skills/generated/<name>/`, git-ignored.
+- `references/connection.json` and `mcp-config.json` hold root, URL and
+  token; directories and files must keep modes `0700` and `0600` respectively.
+- `auto` mode picks HTTPS when enabled, otherwise MCP stdio local.
+- Never print the token during onboarding and never commit generated skills.
+- After `configure.sh --rotate-token`, regenerate authorised skills with
+  `--force`; delete revoked ones.
+- Full specification: [`ONBOARDING.md`](ONBOARDING.md).
 
-### Concorrenza e resilienza
+### Concurrency and resilience
 
-La concorrenza resta filesystem-based e senza servizi esterni:
+Concurrency stays filesystem-based, with no external services:
 
-- letture, liste e ricerche non acquisiscono lock e possono procedere in parallelo;
-- ogni mutazione acquisisce un lock esclusivo **per root wiki**;
-- il lock combina un `RLock` condiviso nel processo e un file lock del sistema
-  operativo (`.wiki-kiss.lock`) per coordinare processi diversi;
-- pagina e indici sono scritti su file temporanei nella stessa directory,
-  sincronizzati e pubblicati con `os.replace`, quindi un lettore non vede file
-  scritti a metà;
-- `append_note` è un read-modify-write protetto: append concorrenti non vengono persi;
-- la rigenerazione degli indici avviene dentro lo stesso lock della modifica;
-- il timeout predefinito è 10 secondi e produce `WriteLockTimeoutError`.
+- reads, listings and searches do not take any lock and run in parallel;
+- every mutation acquires an exclusive lock **per wiki root**;
+- the lock combines a process-wide `RLock` and an OS file lock
+  (`.wiki-kiss.lock`) to coordinate across processes;
+- pages and indexes are written to temporary files in the same directory,
+  flushed and published via `os.replace`, so a reader never sees a partial
+  file;
+- `append_note` is a protected read-modify-write: concurrent appends are
+  never lost;
+- index regeneration happens inside the same critical section as the
+  mutation;
+- the default timeout is 10 seconds and raises `WriteLockTimeoutError`.
 
-Il lock coordina solo processi che usano `WikiStorage`. Un editor o script che
-scrive direttamente nei file può aggirarlo; in presenza di più agenti tutte le
-mutazioni devono quindi passare dal core, da MCP o dalla REST API. Il file di
-lock è solo un artefatto tecnico: non va cancellato durante l'esecuzione e non
-può rimanere “bloccato” dopo la morte del processo, perché il lock è gestito
-dal sistema operativo.
-
----
-
-## Storage e Contenuti
-
-### Formato
-- File **Markdown** puro, UTF-8. (In futuro HTML se serve rich.)
-- Link interni relativi: `[testo](../notes/idea.md)`, `[# Sezione](#titolo)` .
-- Nomi file `kebab-case`.
-- Nessun frontmatter obbligatorio; il primo titolo è il nome pagina.
-
-### Convenzioni
-1. Ogni pagina parte con `# Titolo` .
-2. Link relativi a cartelle parenti: `[altro](../notes/idea.md)` .
-3. **Niente database**: backup semplice con `tar`, migrazione immediata.
-4. Versionamento con Git; ogni commit è un punto di controllo stabile.
-
-### Tipologie di pagine (best-practice)
-
-| Categoria        | Scopo                                          | Cartella       |
-|------------------|------------------------------------------------|-----------------|
-| `projects/*.md`  | Doc progetti, roadmap, specifiche              | `projects/`    |
-| `notes/*.md`     | Appunti, idee, osservazioni rapide              | `notes/`       |
-| `decisions/*.md` | ADR (architecture decision records)             | `decisions/`   |
-| `references/*`   | Link esterni, fonti, articoli                   | `references/`  |
-| `assets/*`       | Immagini, PDF, audio                           | `assets/`      |
-| `logs/*.md`      | Log delle operazioni (append-only)              | `logs/`        |
+The lock only coordinates processes that use `WikiStorage`. Editors or
+scripts that write directly to the files can bypass it; with multiple agents,
+all mutations must therefore go through the core, MCP or the REST API. The
+lock file is a technical artifact: do not delete it while running and it
+cannot remain "stuck" after a process dies, because the lock is managed by
+the operating system.
 
 ---
 
-## API REST
+## Storage and contents
 
-Una API minimale serve come fallback per client legacy. Espone gli stessi operatori base dei tool MCP, più `/health` e `/stats`. Endpoint principali:
+### Format
+- Plain **Markdown**, UTF-8. (HTML supported as well for rich content.)
+- Relative internal links: `[text](../notes/idea.md)`, `[# Section](#title)`.
+- `kebab-case` filenames.
+- No mandatory frontmatter; the first heading is the page name.
 
-- `GET /health` — Health check
-- `GET /stats` — Statistiche wiki (conteggio pagine, dimensione totale)
-- `GET /pages?subdir=…` — Lista pagine nella root o subdir specifica
-- `GET /pages/{path:path}` — Legge contenuto di una pagina
-- `PUT /pages/{path:path}` — Crea/sovrascrive pagina; restituisce info
-- `GET /search?q=…` — Full-text search con snippet e numero di riga
-- `POST /notes` — Append nota (default log giornaliero)
+### Conventions
+1. Every page starts with `# Title`.
+2. Relative links to parent folders: `[other](../notes/idea.md)`.
+3. **No database**: simple backup with `tar`, immediate migration.
+4. Versioned with Git; every commit is a stable checkpoint.
 
-`/health` è pubblico ma non espone root o contenuti. Tutti gli altri endpoint,
-compresi `/docs` e `/openapi.json`, richiedono `Authorization: Bearer
-<WIKI_MCP_TOKEN>`. Senza token il servizio risponde `503` e non serve dati.
+### Page types (best practice)
+
+| Category        | Purpose                                         | Folder        |
+|------------------|-------------------------------------------------|----------------|
+| `projects/*.md`  | Project docs, roadmaps, specifications          | `projects/`   |
+| `notes/*.md`     | Quick notes, ideas, observations                | `notes/`      |
+| `decisions/*.md` | ADRs (Architecture Decision Records)            | `decisions/`  |
+| `references/*`   | External links, sources, articles               | `references/` |
+| `assets/*`       | Images, PDFs, audio                             | `assets/`     |
+| `logs/*.md`      | Append-only operational logs                    | `logs/`       |
 
 ---
 
-## Configurazione del Client
+## REST API
 
-Configura un server MCP nel tuo client AI. Esempio: Claude Code, Open Cloud, Perplexity.
+A minimal API acts as a fallback for legacy clients. It exposes the same base
+operators as the MCP tools, plus `/health` and `/stats`. Main endpoints:
+
+- `GET /health` — health check
+- `GET /stats` — wiki statistics (page count, total size)
+- `GET /pages?subdir=…` — list pages in the root or in a subdir
+- `GET /pages/{path:path}` — read a page
+- `PUT /pages/{path:path}` — create/overwrite a page, returns metadata
+- `GET /search?q=…` — full-text search with snippet and line number
+- `POST /notes` — append note (defaults to the daily log)
+
+`/health` is public but does not expose the root or content. All other
+endpoints, including `/docs` and `/openapi.json`, require
+`Authorization: Bearer <WIKI_MCP_TOKEN>`. Without a token the service
+replies `503` and does not serve data.
+
+---
+
+## Client configuration
+
+Configure an MCP server in your AI client. Example: Claude Code, Open
+Cloud, Perplexity.
 
 ```json
 {
   "mcpServers": {
     "wiki-kiss": {
-      "command": "/percorso/al/progetto/.venv/bin/python",
-      "args": ["-m", "mcp_server", "--root", "/percorso/al/progetto/wiki"],
-      "cwd": "/percorso/al/progetto",
+      "command": "/path/to/project/.venv/bin/python",
+      "args": ["-m", "mcp_server", "--root", "/path/to/project/wiki"],
+      "cwd": "/path/to/project",
       "env": {
-        "WIKI_ROOT": "/percorso/al/progetto/wiki",
+        "WIKI_ROOT": "/path/to/project/wiki",
         "WIKI_LOG_LEVEL": "INFO"
       }
     }
@@ -192,40 +206,42 @@ Configura un server MCP nel tuo client AI. Esempio: Claude Code, Open Cloud, Per
 }
 ```
 
-Variabili principali: `WIKI_ROOT`, `WIKI_MCP_TOKEN`, `WIKI_HTTPS_ENABLED`,
+Main variables: `WIKI_ROOT`, `WIKI_MCP_TOKEN`, `WIKI_HTTPS_ENABLED`,
 `WIKI_HTTP_HOST`, `WIKI_HTTP_PORT`, `WIKI_MCP_URL`, `WIKI_TLS_CERT`,
 `WIKI_TLS_KEY`, `WIKI_LOG_LEVEL`, `NO_COLOR`.
 
-### Scripts di gestione (`scripts/*`)
+### Management scripts (`scripts/*`)
 
-| Script                           | Scopo                                                        |
-|----------------------------------|--------------------------------------------------------------|
-| [`setup.sh`](scripts/setup.sh)  | Installa e configura root, token e stato HTTPS               |
-| `configure.sh`                 | Modifica root/token e accende o spegne MCP HTTPS             |
-| `onboard-agent.sh`             | Genera skill privata con URL/path e credenziali              |
-| `start-mcp.sh`                  | Lancia server MCP stdio (locale, senza rete)                 |
-| `wiki.sh`                       | CLI locale per contenuti e manutenzione indici               |
-| `start-mcp-http.sh`             | Lancia MCP HTTPS solo se abilitato                           |
-| `start-rest.sh`                 | Avvia API REST in background                                 |
-| `stop.sh {mcp|mcp-http|rest}`   | Ferma i servizi                                               |
-| `status.sh`                     | Mostra stato, PID, log                                       |
-| `run-tests.sh`                  | Wrapper su pytest, con args opzionali                        |
-| `install-mcp-client.sh`         | Genera config MCP per CLI diversi (Claude Code, ecc.)        |
-
----
-
-## Skill per Agenti AI
-
-In `.trae/skills/` due skill `SKILL.md` pronte:
-
-1. **wiki-kiss-bridge**: strumenti per leggere, cercare e aggiungere informazioni al wiki (per agent che vogliono usare la knowledge base).
-2. **wiki-kiss-operator**: comandi di installazione, avvio, gestione operativa e troubleshooting.
-
-Copia in `~/.claude/skills/` (o percorso fornito dal tuo client) e riavvia l'agent per caricare le skill.
+| Script                          | Purpose                                                      |
+|---------------------------------|--------------------------------------------------------------|
+| [`setup.sh`](scripts/setup.sh)  | Installs and configures root, token and HTTPS state.         |
+| `configure.sh`                  | Updates root/token and toggles MCP HTTPS.                    |
+| `onboard-agent.sh`              | Generates a private skill with URL/path and credentials.     |
+| `start-mcp.sh`                  | Launches the MCP stdio server (local, no network).            |
+| `wiki.sh`                       | Local CLI for content and index maintenance.                 |
+| `start-mcp-http.sh`             | Launches MCP HTTPS only when enabled.                        |
+| `start-rest.sh`                 | Starts the REST API in background.                           |
+| `stop.sh {mcp|mcp-http|rest}`   | Stops services.                                              |
+| `status.sh`                     | Shows status, pids, logs.                                    |
+| `run-tests.sh`                  | Wrapper around pytest, accepts pytest arguments.             |
+| `install-mcp-client.sh`         | Generates MCP configs for various clients (Claude Code, …).  |
 
 ---
 
-## Test e Qualità
+## AI agent skills
+
+In `.agents/skills/` two ready `SKILL.md` files:
+
+1. **wiki-kiss-bridge**: tools to read, search and append information to the
+   wiki (for agents that want to use the knowledge base).
+2. **wiki-kiss-operator**: install, start, operate and troubleshoot.
+
+Copy them into `~/.claude/skills/` (or the path expected by your client) and
+restart the agent to load the skills.
+
+---
+
+## Tests and quality
 
 ```bash
 scripts/run-tests.sh -q
@@ -233,37 +249,38 @@ scripts/run-tests.sh -q
 .venv/bin/ruff check wiki_core mcp_server rest_api.py tests
 ```
 
-- **pytest** per storage, CLI, autenticazione e concorrenza thread/processi.
-- **Smoke test** MCP stdio e trasporto HTTP protetto da TLS in produzione.
-- **Ruff** per linting/stile.
+- **pytest** for storage, CLI, authentication and thread/process concurrency.
+- **Smoke tests** for MCP stdio and the TLS-protected HTTP transport.
+- **Ruff** for linting/style.
 
-### Regole per modificare il core
+### Core change rules
 
-1. Non introdurre database, Redis o code esterne senza un requisito dimostrato.
-2. Mantenere una sola root e un solo token per processo; usare container
-   separati, volumi non condivisi e token distinti per clienti differenti.
-3. Non scrivere pagine o indici direttamente dagli handler: usare `WikiStorage`.
-4. Ogni nuova mutazione deve usare il write lock della root e scrittura atomica.
-5. Le letture devono restare lock-free; accettano di osservare la versione
-   completa precedente o successiva, mai un file parziale.
-6. Gli indici sono dati derivati e deterministici: nessun LLM nella generazione.
-7. Aggiungere test di concorrenza quando cambia il percorso di scrittura.
+1. Do not introduce databases, Redis or external queues without a proven
+   requirement.
+2. Keep a single root and a single token per process; use separate
+   containers, non-shared volumes and distinct tokens for different customers.
+3. Never write pages or indexes directly from the handlers: use `WikiStorage`.
+4. Every new mutation must use the root write lock and atomic writes.
+5. Reads must stay lock-free; they accept seeing the complete previous or
+   next version, never a partial file.
+6. Indexes are derived and deterministic data: no LLM in their generation.
+7. Add concurrency tests when the write path changes.
 
 ---
 
-## Esempio di Pagina Markdown
+## Markdown page example
 
 ```markdown
 # HoRNetMBC
 
-**HoRNet** · versione 1.0.4 · Dynamics
+**HoRNet** · version 1.0.4 · Dynamics
 
 ## Repository
 
 - **GitHub:** https://github.com/hor-net/HoRNetMBC
-- **Path locale:** `/Users/…/Projects/HoRNetMBC`
+- **Local path:** `/Users/.../Projects/HoRNetMBC`
 
-## Identificativi Plugin
+## Plugin identifiers
 
 - **Manufacturer ID:** `HrNt`
 - **Unique ID:** `bI8H`
@@ -271,29 +288,28 @@ scripts/run-tests.sh -q
 
 ## Build
 
-- Script di build cross-platform in `scripts/`
-- Installer su `installer/` per macOS/Windows
+- Cross-platform build script in `scripts/`
+- Installer under `installer/` for macOS/Windows
 ```
 
 ---
 
-## Sicurezza
+## Security
 
-- Validazione percorsi: nessun symlink o `..` arbitrario.
-- Limite file 2 MiB per singola pagina.
-- Scope limitato alla root del wiki (`WIKI_ROOT`).
-- TLS e autenticazione Bearer obbligatori per MCP di rete; Bearer obbligatorio
-  per REST locale; comportamento
-  fail-closed se `WIKI_MCP_TOKEN` non è configurato.
-- Gli health check pubblici non espongono root, percorsi o contenuti.
-- Tutte le risposte HTTP usano `Cache-Control: no-store` e non devono essere
-  memorizzate da browser o proxy.
+- Path validation: no arbitrary symlinks or `..`.
+- 2 MiB per-page limit.
+- Scope limited to the wiki root (`WIKI_ROOT`).
+- TLS and Bearer authentication mandatory for remote MCP; Bearer mandatory
+  for local REST; fail-closed if `WIKI_MCP_TOKEN` is not configured.
+- Public health checks do not expose root, paths or content.
+- All HTTP responses use `Cache-Control: no-store` and must not be cached by
+  browsers or proxies.
 
 ---
 
-## Licenza, Contributi e Riferimenti
+## License, contributions and references
 
-- **Licenza:** GNU AGPL v3 o successiva — Copyright (C) 2026 Hornet SRL.
-- **Contribuire:** issue/PR benvenuti; linee guida in README.md.
-- **Riferimento MCP:** https://modelcontextprotocol.io
-- **Filosofia Unix:** "do one thing and do it well".
+- **License:** GNU AGPL v3 or later — Copyright (C) 2026 Hornet SRL.
+- **Contributing:** issues and PRs are welcome; guidelines in README.md.
+- **MCP reference:** https://modelcontextprotocol.io
+- **Unix philosophy:** "do one thing and do it well".

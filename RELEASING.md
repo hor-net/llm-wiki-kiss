@@ -1,15 +1,15 @@
-# Pubblicare una release GitHub
+# Publishing a GitHub release
 
-Il progetto viene distribuito come repository Git clonabile. Non sono richiesti
-Docker o pubblicazione PyPI.
+The project is distributed as a cloneable Git repository. No Docker or PyPI
+publication is required.
 
 ## Checklist
 
-1. Verifica che il wiki di esempio non contenga dati privati.
-2. Verifica che non siano tracciati `.wiki-kiss.env`, skill generate, token o
-   chiavi TLS.
-3. Aggiorna versione in `pyproject.toml`, API REST e `CHANGELOG.md`.
-4. Esegui:
+1. Make sure the example wiki does not contain private data.
+2. Make sure `.wiki-kiss.env`, generated skills, tokens or TLS keys are
+   not tracked.
+3. Bump the version in `pyproject.toml`, the REST API and `CHANGELOG.md`.
+4. Run:
 
    ```bash
    python -m pytest -q
@@ -19,7 +19,7 @@ Docker o pubblicazione PyPI.
    python tests/smoke_mcp_http.py
    ```
 
-5. Prova da clone pulito:
+5. Try a clean clone:
 
    ```bash
    scripts/setup.sh --with-dev --root ./wiki --https off
@@ -28,9 +28,9 @@ Docker o pubblicazione PyPI.
    scripts/onboard-agent.sh --name release-smoke --mode local
    ```
 
-6. Controlla che le GitHub Actions siano verdi.
-7. Rivedi il diff e crea commit coerenti.
-8. Crea un tag annotato e pubblicalo:
+6. Confirm that GitHub Actions are green.
+7. Review the diff and create focused commits.
+8. Create an annotated tag and push it:
 
    ```bash
    git tag -a v0.3.0 -m "llm-wiki-kiss v0.3.0"
@@ -38,6 +38,6 @@ Docker o pubblicazione PyPI.
    git push origin v0.3.0
    ```
 
-9. Crea la GitHub Release usando la sezione corrispondente di `CHANGELOG.md`.
+9. Create the GitHub Release using the matching section of `CHANGELOG.md`.
 
-Non creare il tag finché il working tree non è pulito e la CI non è verde.
+Never tag before the working tree is clean and the CI is green.

@@ -1,8 +1,8 @@
 # Changelog
 
-Le modifiche rilevanti sono documentate in questo file. Il formato segue
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) e il progetto usa
-[Semantic Versioning](https://semver.org/).
+All notable changes are documented in this file. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
+adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
@@ -10,32 +10,33 @@ Le modifiche rilevanti sono documentate in questo file. Il formato segue
 
 ### Added
 
-- CLI locale per lista, lettura, ricerca, scrittura, append, statistiche e indici.
-- Lock di scrittura per root tra thread e processi.
-- Scritture atomiche di pagine e indici.
-- Setup e configurazione persistente di root, token e HTTPS.
-- Attivazione e spegnimento espliciti dell'interfaccia MCP HTTPS.
-- Autenticazione fail-closed condivisa da MCP HTTPS e REST locale.
-- Generazione di Agent Skills personalizzate con configurazione MCP protetta.
-- Documentazione per configurazione, onboarding, sicurezza e contributi.
-- Test concorrenti, CLI, configurazione, onboarding e autenticazione.
+- Local CLI for listing, reading, searching, writing, appending, statistics
+  and indexes.
+- Per-root write lock shared by threads and processes.
+- Atomic writes for pages and indexes.
+- Persistent setup and configuration of root, token and HTTPS.
+- Explicit on/off control of the MCP HTTPS interface.
+- Fail-closed authentication shared by MCP HTTPS and the local REST API.
+- Generation of personalised Agent Skills with protected MCP configuration.
+- Documentation for configuration, onboarding, security and contributions.
+- Concurrent, CLI, configuration, onboarding and authentication tests.
 
 ### Changed
 
-- Architettura semplificata a un solo wiki e un solo token per processo.
-- REST limitata al loopback dagli script ufficiali.
-- Operazioni filesystem MCP spostate fuori dall'event loop.
-- Licenza aggiornata ad AGPL-3.0-or-later.
+- Architecture simplified to one wiki and one token per process.
+- REST limited to the loopback by the official scripts.
+- MCP filesystem operations moved out of the event loop.
+- Licence updated to AGPL-3.0-or-later.
 
 ### Removed
 
-- Routing e configurazione multi-wiki nello stesso processo.
+- Multi-wiki routing and configuration inside the same process.
 
 ## [0.2.0]
 
 ### Added
 
-- Trasporto MCP Streamable HTTP con autenticazione Bearer.
+- MCP Streamable HTTP transport with Bearer authentication.
 
 [Unreleased]: https://github.com/hor-net/llm-wiki-kiss/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/hor-net/llm-wiki-kiss/compare/v0.2.0...v0.3.0

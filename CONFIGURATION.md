@@ -1,84 +1,84 @@
-# Configurazione single-wiki
+# Single-wiki configuration
 
-llm-wiki-kiss esegue **un solo wiki per processo o container**. La
-configurazione operativa è salvata in `.wiki-kiss.env`, escluso da Git e creato
-con permessi `0600`.
+llm-wiki-kiss runs **exactly one wiki per process or container**. The
+operational configuration is persisted in `.wiki-kiss.env`, which is
+git-ignored and created with mode `0600`.
 
-## Setup iniziale
+## Initial setup
 
-Lo script di setup installa dipendenze e comandi CLI, configura la root e genera
-un token casuale di 256 bit:
+The setup script installs dependencies and CLI commands, configures the root
+and generates a random 256-bit token:
 
 ```bash
-scripts/setup.sh --with-dev --root ~/wiki-privato --https off
+scripts/setup.sh --with-dev --root ~/private-wiki --https off
 ```
 
-Al termine stampa:
+When it finishes it prints:
 
 ```text
-WIKI_MCP_TOKEN=<token-generato>
+WIKI_MCP_TOKEN=<generated-token>
 ```
 
-Conserva il token in un password manager. Lo stesso token protegge MCP HTTPS e
-la REST API locale. MCP stdio e la CLI non usano token perché comunicano
-localmente e seguono i permessi del filesystem.
+Keep the token in a password manager. The same token protects MCP HTTPS and
+the local REST API. MCP stdio and the CLI do not use a token because they
+communicate locally and rely on filesystem permissions.
 
-Se certificato e chiave esistono già, il setup può anche avviare HTTPS:
+If the certificate and key already exist, the setup can also start HTTPS:
 
 ```bash
-scripts/setup.sh --root /srv/wiki/cliente-a --https on \
+scripts/setup.sh --root /srv/wiki/customer-a --https on \
   --host 0.0.0.0 --port 8766 \
   --url https://wiki.example.com/mcp \
   --cert /etc/tls/wiki.crt --key /etc/tls/wiki.key
 ```
 
-Per saltare la configurazione durante un aggiornamento:
+To skip the configuration step during an upgrade:
 
 ```bash
 scripts/setup.sh --no-config
 ```
 
-## Configurazione interattiva
+## Interactive configuration
 
 ```bash
 scripts/configure.sh
 ```
 
-Lo script chiede la root e se attivare MCP HTTPS. La root viene creata se manca.
-HTTPS è disabilitato per default e non può essere attivato senza certificato e
-chiave privata leggibili.
+The script asks for the root and whether to enable MCP HTTPS. The root is
+created if it does not exist. HTTPS is disabled by default and cannot be
+enabled without a readable certificate and private key.
 
-Configurazione non interattiva:
+Non-interactive configuration:
 
 ```bash
-scripts/configure.sh --root /srv/wiki/cliente-a --https off
+scripts/configure.sh --root /srv/wiki/customer-a --https off
 ```
 
 ## Token
 
-Mostrare il token configurato:
+Show the configured token:
 
 ```bash
 scripts/configure.sh --show-token
 ```
 
-Ruotarlo in qualunque momento:
+Rotate it at any time:
 
 ```bash
 scripts/configure.sh --rotate-token
 ```
 
-La rotazione riavvia gli eventuali servizi HTTP attivi affinché il vecchio
-token cessi immediatamente di funzionare. Il token non deve essere passato in URL,
-committato o condiviso tra clienti.
+Rotation restarts any running HTTP services so that the old token stops
+working immediately. The token must never be passed in URLs, committed or
+shared between customers.
 
-## Accendere e spegnere MCP HTTPS
+## Turning MCP HTTPS on and off
 
-### Certificato attendibile
+### Trusted certificate
 
-Per un servizio raggiungibile da altre macchine usa certificato e chiave PEM
-rilasciati per il nome DNS del server, oppure termina TLS in un reverse proxy.
-Per il TLS diretto gestito dal progetto:
+For a service reachable from other machines use a PEM certificate and key
+issued for the DNS name of the server, or terminate TLS in a reverse proxy.
+For direct TLS handled by the project:
 
 ```bash
 scripts/configure.sh \
@@ -90,16 +90,16 @@ scripts/configure.sh \
   --key /etc/letsencrypt/live/wiki.example.com/privkey.pem
 ```
 
-Il comando salva la configurazione e avvia `mcp-http`. Endpoint:
+The command saves the configuration and starts `mcp-http`. Endpoint:
 
 ```text
 https://HOST:8766/mcp
 ```
 
-### Certificato self-signed per prove locali
+### Self-signed certificate for local testing
 
-Un certificato self-signed è adatto solo a test o reti controllate e deve essere
-esplicitamente considerato attendibile dal client:
+A self-signed certificate is suitable only for tests or controlled networks
+and must be explicitly trusted by the client:
 
 ```bash
 mkdir -p var/tls
@@ -117,27 +117,27 @@ scripts/configure.sh --https on \
   --key var/tls/wiki-kiss.key
 ```
 
-### Spegnimento
+### Turning it off
 
 ```bash
 scripts/configure.sh --https off
 ```
 
-Questo arresta il processo HTTPS e ne impedisce il riavvio accidentale tramite
-`start-mcp-http.sh`. MCP stdio e CLI restano disponibili offline:
+This stops the HTTPS process and prevents `start-mcp-http.sh` from
+accidentally restarting it. MCP stdio and the CLI remain available offline:
 
 ```bash
-scripts/wiki.sh search "query locale"
-.venv/bin/python -m mcp_server --root /percorso/wiki
+scripts/wiki.sh search "local query"
+.venv/bin/python -m mcp_server --root /path/wiki
 ```
 
-Per riaccendere usando certificato e chiave già salvati:
+To turn it back on using the saved certificate and key:
 
 ```bash
 scripts/configure.sh --https on
 ```
 
-Stato corrente:
+Current status:
 
 ```bash
 scripts/status.sh
@@ -145,27 +145,28 @@ scripts/status.sh
 
 ## REST API
 
-La REST API usa lo stesso `WIKI_MCP_TOKEN` ma lo script `start-rest.sh` accetta
-solo binding loopback (`127.0.0.1`, `localhost`, `::1`). Per accesso remoto usa
-MCP HTTPS. Anche REST resta fail-closed se il token non è configurato.
+The REST API uses the same `WIKI_MCP_TOKEN`, but the `start-rest.sh` script
+only accepts loopback binding (`127.0.0.1`, `localhost`, `::1`). For remote
+access use MCP HTTPS. REST also stays fail-closed if the token is not
+configured.
 
-## File `.wiki-kiss.env`
+## The `.wiki-kiss.env` file
 
-Le variabili gestite sono:
+The variables managed are:
 
 ```dotenv
-WIKI_ROOT=/percorso/assoluto/wiki
-WIKI_MCP_TOKEN=<segreto>
+WIKI_ROOT=/absolute/path/wiki
+WIKI_MCP_TOKEN=<secret>
 WIKI_HTTPS_ENABLED=0
 WIKI_HTTP_HOST=127.0.0.1
 WIKI_HTTP_PORT=8766
 WIKI_MCP_URL=https://wiki.example.com/mcp
-WIKI_TLS_CERT=/percorso/certificato.pem
-WIKI_TLS_KEY=/percorso/chiave.pem
+WIKI_TLS_CERT=/path/cert.pem
+WIKI_TLS_KEY=/path/key.pem
 ```
 
-Non modificare o copiare questo file tra clienti. Ogni container deve avere
-root, token, certificato e configurazione indipendenti.
+Do not edit or copy this file between customers. Each container must have an
+independent root, token, certificate and configuration.
 
-Per generare una skill LLM contenente URL/path e credenziali dell'istanza,
-consulta [`ONBOARDING.md`](ONBOARDING.md).
+To generate an LLM skill containing the instance URL/path and credentials,
+see [`ONBOARDING.md`](ONBOARDING.md).

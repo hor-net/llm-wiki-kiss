@@ -1,15 +1,16 @@
-# Contribuire a llm-wiki-kiss
+# Contributing to llm-wiki-kiss
 
-Grazie per il contributo. Il progetto privilegia soluzioni piccole,
-filesystem-oriented e comprensibili.
+Thank you for your interest. The project favours small, filesystem-oriented,
+easy-to-understand solutions.
 
-## Prima di iniziare
+## Before you start
 
-- Per bug e funzionalità usa i template GitHub.
-- Per vulnerabilità segui [`SECURITY.md`](SECURITY.md), mai issue pubbliche.
-- Non allegare token, `.wiki-kiss.env`, skill generate o wiki privati.
+- Use the GitHub issue templates for bugs and feature requests.
+- Follow [`SECURITY.md`](SECURITY.md) for vulnerabilities, never a public
+  issue.
+- Do not attach tokens, `.wiki-kiss.env`, generated skills or private wikis.
 
-## Ambiente di sviluppo
+## Development environment
 
 ```bash
 git clone https://github.com/hor-net/llm-wiki-kiss.git
@@ -17,9 +18,9 @@ cd llm-wiki-kiss
 scripts/setup.sh --with-dev --root ./wiki --https off
 ```
 
-Il setup genera un token locale. Non commetterlo.
+The setup generates a local token. Do not commit it.
 
-## Verifiche obbligatorie
+## Mandatory checks
 
 ```bash
 python -m pytest -q
@@ -29,33 +30,32 @@ python tests/smoke_mcp.py
 python tests/smoke_mcp_http.py
 ```
 
-## Regole architetturali
+## Architectural rules
 
-1. Un solo wiki per processo; niente routing multi-tenant.
-2. Niente database o servizi esterni obbligatori.
-3. Tutte le mutazioni passano da `WikiStorage`.
-4. Letture lock-free, scritture atomiche e coordinate.
-5. Niente accesso MCP remoto senza TLS e autenticazione.
-6. REST limitata al loopback.
-7. File Markdown leggibili anche senza il software.
-8. Test obbligatori per storage, sicurezza, CLI e script operativi.
+1. One wiki per process; no multi-tenant routing.
+2. No database or mandatory external services.
+3. All mutations go through `WikiStorage`.
+4. Reads are lock-free; writes are atomic and coordinated.
+5. No remote MCP access without TLS and authentication.
+6. REST is limited to the loopback.
+7. Markdown files must remain readable without the software.
+8. Tests are mandatory for storage, security, CLI and operational scripts.
 
-## Stile
+## Style
 
 - Python 3.10+.
-- Ruff secondo `pyproject.toml`.
-- Nomi pagina wiki in `kebab-case`.
-- Testo e documentazione possono essere in italiano; API e nomi pubblici devono
-  restare chiari e stabili.
+- Ruff as configured in `pyproject.toml`.
+- Wiki page filenames in `kebab-case`.
+- Code identifiers stay in English; documentation may be translated.
 
-## Pull request
+## Pull requests
 
-Mantieni le PR focalizzate. Descrivi:
+Keep PRs focused. Describe:
 
-- problema risolto;
-- comportamento precedente e nuovo;
-- test eseguiti;
-- implicazioni per sicurezza, compatibilità e dati esistenti.
+- the problem solved;
+- the previous and new behaviour;
+- the tests executed;
+- the implications for security, compatibility and existing data.
 
-Contribuendo accetti che il codice sia distribuito secondo la licenza
-AGPL-3.0-or-later del progetto.
+By contributing you accept that the code is distributed under the
+AGPL-3.0-or-later licence of the project.

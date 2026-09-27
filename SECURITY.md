@@ -1,47 +1,47 @@
 # Security Policy
 
-## Versioni supportate
+## Supported versions
 
-Il branch `main` e l'ultima release pubblicata ricevono correzioni di sicurezza.
-Le versioni precedenti possono non ricevere backport.
+The `main` branch and the latest public release receive security fixes.
+Previous versions may not receive backports.
 
-## Segnalare una vulnerabilità
+## Reporting a vulnerability
 
-Usa esclusivamente la funzione privata **Report a vulnerability** di GitHub:
+Use the **Report a vulnerability** private form on GitHub only:
 
 <https://github.com/hor-net/llm-wiki-kiss/security/advisories/new>
 
-Non aprire issue pubbliche contenenti vulnerabilità, token, certificati, path
-privati o pagine del wiki. Includi una riproduzione minimale con dati fittizi.
+Do not open public issues containing vulnerabilities, tokens, certificates,
+private paths or wiki pages. Provide a minimal reproduction with dummy data.
 
-## Modello di sicurezza
+## Threat model
 
-llm-wiki-kiss è intenzionalmente single-tenant:
+llm-wiki-kiss is intentionally single-tenant:
 
-- un processo serve una sola `WIKI_ROOT`;
-- clienti differenti devono usare processi, utenti e root differenti;
-- MCP stdio e CLI ereditano i permessi dell'utente locale;
-- REST è limitata al loopback dagli script ufficiali;
-- MCP di rete richiede TLS e Bearer token;
-- senza token il livello HTTP resta fail-closed;
-- le scritture coordinate funzionano soltanto se passano da `WikiStorage`.
+- one process serves a single `WIKI_ROOT`;
+- different customers must use different processes, users and roots;
+- MCP stdio and the CLI inherit the permissions of the local user;
+- REST is limited to the loopback by the official scripts;
+- network MCP requires TLS and a Bearer token;
+- without a token the HTTP layer stays fail-closed;
+- coordinated writes only work when they go through `WikiStorage`.
 
-Il progetto non protegge i dati da un amministratore della macchina, da un
-processo con gli stessi permessi filesystem o da script che accedono
-direttamente alla root.
+The project does not protect data from a host administrator, from a process
+with the same filesystem permissions, or from scripts that access the root
+directly.
 
-## Gestione dei segreti
+## Secret handling
 
-- `.wiki-kiss.env` e le skill generate contengono credenziali reali.
-- Non committare `.wiki-kiss.env`, chiavi TLS o `.agents/skills/generated/`.
-- Usa root separate e token differenti per installazioni differenti.
-- Dopo una possibile esposizione esegui `scripts/configure.sh --rotate-token` e
-  rigenera soltanto le skill autorizzate.
-- Trasmetti il Bearer token esclusivamente tramite HTTPS.
-- Per servizi pubblici usa certificati attendibili e limita l'accesso anche a
-  livello di firewall o reverse proxy.
+- `.wiki-kiss.env` and generated skills contain real credentials.
+- Never commit `.wiki-kiss.env`, TLS keys or `.agents/skills/generated/`.
+- Use separate roots and distinct tokens for different installations.
+- After a possible exposure run `scripts/configure.sh --rotate-token` and
+  regenerate only the still-authorised skills.
+- Transmit the Bearer token only over HTTPS.
+- For public services use trusted certificates and restrict access at the
+  firewall or reverse-proxy level as well.
 
-## Dipendenze e verifiche
+## Dependencies and checks
 
-Le pull request eseguono test, Ruff, validazione Bash e scansione Gitleaks. Le
-dipendenze vengono monitorate tramite Dependabot.
+Pull requests run tests, Ruff, Bash validation and Gitleaks. Dependencies
+are monitored via Dependabot.
