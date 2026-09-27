@@ -1,0 +1,60 @@
+name: Bug report
+description: Segnala un comportamento riproducibile di llm-wiki-kiss.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Non includere token, `.wiki-kiss.env`, skill generate o contenuti privati del wiki.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versione
+      placeholder: v0.3.0 o commit SHA
+    validations:
+      required: true
+
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interfaccia
+      options:
+        - CLI
+        - MCP stdio
+        - MCP HTTPS
+        - REST locale
+        - Setup/configurazione
+        - Onboarding skill
+        - Altro
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Passi per riprodurre
+      description: Usa percorsi e token fittizi.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Risultato atteso
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Risultato ottenuto
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Ambiente
+      placeholder: Sistema operativo, Python, client MCP

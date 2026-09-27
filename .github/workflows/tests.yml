@@ -1,0 +1,53 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -r requirements.txt -r requirements-dev.txt
+          python -m pip install --no-deps -e .
+
+      - name: Unit and integration tests
+        run: python -m pytest -q
+
+      - name: Ruff
+        run: python -m ruff check wiki_core mcp_server rest_api.py tests
+
+      - name: Validate Bash syntax
+        if: matrix.python-version == '3.12'
+        run: find scripts -type f -name '*.sh' -print0 | xargs -0 bash -n
+
+      - name: MCP smoke tests
+        if: matrix.python-version == '3.12'
+        run: |
+          python tests/smoke_mcp.py
+          python tests/smoke_mcp_http.py

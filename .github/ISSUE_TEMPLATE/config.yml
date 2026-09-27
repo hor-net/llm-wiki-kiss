@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Segnalazione di sicurezza privata
+    url: https://github.com/hor-net/llm-wiki-kiss/security/advisories/new
+    about: Non pubblicare vulnerabilità o credenziali in una issue.

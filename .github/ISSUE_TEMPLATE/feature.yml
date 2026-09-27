@@ -1,0 +1,36 @@
+name: Feature request
+description: Proponi un miglioramento coerente con la filosofia KISS.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema da risolvere
+      description: Descrivi il bisogno concreto, non soltanto la soluzione proposta.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Soluzione proposta
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternative considerate
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Compatibilità con il progetto
+      options:
+        - label: Mantiene un solo wiki per processo.
+          required: true
+        - label: Non richiede un database o un servizio esterno obbligatorio.
+          required: true
+        - label: Non indebolisce autenticazione, TLS o isolamento dei dati.
+          required: true
