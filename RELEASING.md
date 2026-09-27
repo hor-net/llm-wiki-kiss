@@ -24,7 +24,6 @@ publication is required.
    ```bash
    scripts/setup.sh --with-dev --root ./wiki --https off
    scripts/wiki.sh list
-   scripts/install-mcp-client.sh --client generic
    scripts/onboard-agent.sh --name release-smoke --mode local
    ```
 

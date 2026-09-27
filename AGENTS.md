@@ -224,7 +224,6 @@ Main variables: `WIKI_ROOT`, `WIKI_MCP_TOKEN`, `WIKI_HTTPS_ENABLED`,
 | `stop.sh {mcp|mcp-http|rest}`   | Stops services.                                              |
 | `status.sh`                     | Shows status, pids, logs.                                    |
 | `run-tests.sh`                  | Wrapper around pytest, accepts pytest arguments.             |
-| `install-mcp-client.sh`         | Generates MCP configs for various clients (Claude Code, …).  |
 
 ---
 
