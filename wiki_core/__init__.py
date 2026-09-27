@@ -13,6 +13,7 @@ from .storage import (
     SearchResult,
     WikiStorage,
     WikiStorageError,
+    WriteLockTimeoutError,
 )
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
     "SearchResult",
     "WikiStorage",
     "WikiStorageError",
+    "WriteLockTimeoutError",
     "PageNotFoundError",
     "PageAlreadyExistsError",
     "InvalidPathError",
