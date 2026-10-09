@@ -41,11 +41,11 @@ from wiki_core import WikiStorage, WikiStorageError
 
 from .auth import BearerAuthMiddleware
 from .server import (
-    SKILL_NAMES,
-    _load_skill,
     _HANDLERS,
     ALL_TOOLS,
     SERVER_INSTRUCTIONS,
+    SKILL_NAMES,
+    _load_skill,
     _resolve_root_from_env,
 )
 
