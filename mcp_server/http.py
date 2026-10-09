@@ -41,6 +41,8 @@ from wiki_core import WikiStorage, WikiStorageError
 
 from .auth import BearerAuthMiddleware
 from .server import (
+    SKILL_NAMES,
+    _load_skill,
     _HANDLERS,
     ALL_TOOLS,
     SERVER_INSTRUCTIONS,
@@ -81,6 +83,44 @@ def _build_mcp_server(wiki_root: str | os.PathLike[str]) -> Server:
             LOGGER.warning("Tool %s fallito: %s", name, exc)
             raise ValueError(str(exc)) from exc
         return _to_text_content(payload)
+
+    @server.list_prompts()
+    async def _list_prompts():
+        """Expose wiki skills as MCP prompts (server-side, no install)."""
+        prompts = []
+        for skill_name in SKILL_NAMES:
+            try:
+                _, description, _ = _load_skill(skill_name)
+            except FileNotFoundError:
+                LOGGER.warning("Skill %s non trovata, skip", skill_name)
+                continue
+            prompts.append(
+                types.Prompt(
+                    name=skill_name,
+                    description=description,
+                    arguments=[],
+                )
+            )
+        return prompts
+
+    @server.get_prompt()
+    async def _get_prompt(name, arguments):
+        """Return the body of a skill prompt loaded from SKILL.md."""
+        if name not in SKILL_NAMES:
+            raise ValueError("Prompt sconosciuto: " + name)
+        try:
+            _, description, body = _load_skill(name)
+        except FileNotFoundError as exc:
+            raise ValueError("Skill " + name + " non disponibile") from exc
+        return types.GetPromptResult(
+            description=description,
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(type="text", text=body),
+                )
+            ],
+        )
 
     return server
 

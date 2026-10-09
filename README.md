@@ -127,6 +127,9 @@ closed-source "AI memory" service.
   tailored `SKILL.md` plus a protected `connection.json` and an MCP
   client config ready for Claude Code, Claude Desktop, Pi or any
   Agent Skills compatible client.
+- **MCP prompts** (v0.4.0+): the same skills are also exposed as MCP
+  prompts (server-pushed, no client install) so any compatible agent
+  can load them at runtime via `prompts/get`.
 - **Configuration persistence**: root, token, host, port, TLS
   certificate and key are stored in `.wiki-kiss.env` with mode `0600`.
   `scripts/configure.sh` rotates the token, toggles HTTPS, restarts the
@@ -475,6 +478,26 @@ loadable by TRAE, Claude Code and other compatible agents:
 Copy the folders into `~/.claude/skills/` (or the path expected by your
 client) to use them locally. Pi automatically discovers project skills under
 `.agents/skills/`.
+
+### MCP prompts (server-pushed, no client install)
+
+Since v0.4.0 the two skills are also exposed as **MCP prompts**. The
+server advertises them via the standard `prompts/list` method and
+returns their body via `prompts/get`, reading the live SKILL.md
+content on every request. This means:
+
+- A connecting agent (Claude Code, Pi, Open Cloud, ...) sees the prompts
+  listed in its `prompts/list` response and can load them with a
+  `prompts/get` call, without any local file install.
+- The skill content is always fresh: edit the SKILL.md and the next
+  prompt fetch returns the new version to every connected client.
+- No credential is exposed: the SKILL.md body is operator documentation,
+  the per-instance token is still delivered by
+  `scripts/onboard-agent.sh` as `connection.json`.
+
+This is the recommended way to deliver skills when several clients
+connect to the same wiki over MCP HTTP/HTTPS: one place to edit, every
+client up-to-date automatically.
 
 ---
 
