@@ -32,6 +32,8 @@ from wiki_core import (
 LOGGER = logging.getLogger("mcp_server")
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent / "wiki"
 
+SKILLS_DIR = Path(__file__).resolve().parent.parent / ".agents" / "skills"
+
 SERVER_INSTRUCTIONS = (
     "Self-hosted KISS wiki. Use the tools to read, write and search "
     "Markdown/HTML pages in the configured wiki folder. Paths are "
@@ -201,6 +203,32 @@ def _resolve_root_from_env() -> Path:
         return Path(raw).expanduser().resolve()
     return DEFAULT_ROOT
 
+def _load_skill(name):
+    """Load a SKILL.md file and return (name, description, body)."""
+    path = SKILLS_DIR / name / "SKILL.md"
+    raw = path.read_text(encoding="utf-8")
+    parts = raw.split("---", 2)
+    if len(parts) < 3:
+        raise ValueError("SKILL.md for " + name + " has no YAML frontmatter")
+    frontmatter = parts[1].strip()
+    body = parts[2].strip()
+    fm_name = ""
+    fm_desc = ""
+    for line in frontmatter.splitlines():
+        line = line.strip()
+        if line.startswith("name:"):
+            fm_name = line.split(":", 1)[1].strip().strip(chr(34)).strip(chr(39))
+        elif line.startswith("description:"):
+            fm_desc = line.split(":", 1)[1].strip().strip(chr(34)).strip(chr(39))
+    if not fm_name:
+        fm_name = name
+    if not fm_desc:
+        fm_desc = "Operational skill " + chr(34) + name + chr(34) + "."
+    return fm_name, fm_desc, body
+
+# Skills exposed as MCP prompts (server-side, no client install needed)
+SKILL_NAMES = ("wiki-kiss-bridge", "wiki-kiss-operator")
+
 
 def _register_handlers(server: Server, storage: WikiStorage) -> None:
     """Registra i decorator ``list_tools`` e ``call_tool`` sul server."""
@@ -227,8 +255,46 @@ def _register_handlers(server: Server, storage: WikiStorage) -> None:
 
 
 # ----------------------------------------------------------------------
-# Implementazione dei singoli tool
+    @server.list_prompts()
+    async def _list_prompts():
+        """Expose wiki skills as MCP prompts (server-side, no install)."""
+        prompts = []
+        for skill_name in SKILL_NAMES:
+            try:
+                _, description, _ = _load_skill(skill_name)
+            except FileNotFoundError:
+                LOGGER.warning("Skill %s non trovata, skip", skill_name)
+                continue
+            prompts.append(
+                types.Prompt(
+                    name=skill_name,
+                    description=description,
+                    arguments=[],
+                )
+            )
+        return prompts
+
+    @server.get_prompt()
+    async def _get_prompt(name, arguments):
+        """Return the body of a skill prompt loaded from SKILL.md."""
+        if name not in SKILL_NAMES:
+            raise McpError("Prompt sconosciuto: " + name)
+        try:
+            _, description, body = _load_skill(name)
+        except FileNotFoundError as exc:
+            raise McpError("Skill " + name + " non disponibile") from exc
+        return types.GetPromptResult(
+            description=description,
+            messages=[
+                types.PromptMessage(
+                    role="user",
+                    content=types.TextContent(type="text", text=body),
+                )
+            ],
+        )
+
 # ----------------------------------------------------------------------
+# Implementazione dei singoli tool
 
 def _tool_list_pages(storage: WikiStorage, args: dict) -> dict:
     pages = storage.list_pages(subdir=args.get("subdir"))

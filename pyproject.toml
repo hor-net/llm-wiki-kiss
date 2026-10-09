@@ -1,6 +1,6 @@
 [project]
 name = "llm-wiki-kiss"
-version = "0.3.0"
+version = "0.4.0"
 description = "Wiki KISS self-hosted per agenti AI con accesso MCP, CLI e REST."
 readme = "README.md"
 requires-python = ">=3.10"

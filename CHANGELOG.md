@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0]
+
+### Added
+
+- **MCP prompts** for the two operational skills (wiki-kiss-bridge and
+  wiki-kiss-operator). The server now exposes them via the standard
+  prompts/list and prompts/get MCP methods, so any compatible
+  client (Claude Code, Pi, Open Cloud, ...) can load the skills at
+  runtime without copying any file locally. The content is read live
+  from .agents/skills/<name>/SKILL.md on every prompt fetch, so
+  editing the markdown file is enough to roll out a new version of the
+  skill to every connected agent.
+- Internal helper mcp_server.server._load_skill(name) parses the
+  YAML frontmatter of a SKILL.md and returns the (name,
+  description, body) triple used by the prompt handlers.
+
 ## [0.3.0]
 
 ### Added
