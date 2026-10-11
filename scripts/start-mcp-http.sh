@@ -100,7 +100,7 @@ UV_FLAGS=(
   "--host" "${HOST}"
   "--port" "${PORT}"
   "--workers" "${WORKERS}"
-  "--log-level" "${WIKI_LOG_LEVEL:-info}"
+  "--log-level" "$(printf "%s" "${WIKI_LOG_LEVEL:-info}" | tr "[:upper:]" "[:lower:]")"
   "--ssl-certfile" "${CERT}"
   "--ssl-keyfile" "${KEY}"
 )
