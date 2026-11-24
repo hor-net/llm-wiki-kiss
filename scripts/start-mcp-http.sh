@@ -29,7 +29,7 @@ Opzioni:
 Variabili d'ambiente riconosciute:
   WIKI_ROOT, WIKI_MCP_TOKEN, WIKI_HTTPS_ENABLED, WIKI_HTTP_HOST,
   WIKI_HTTP_PORT, WIKI_TLS_CERT, WIKI_TLS_KEY, WIKI_MCP_AUTH_MODE,
-  WIKI_MCP_OAUTH_ISSUER, WIKI_MCP_OAUTH_CLIENT_ID, WIKI_MCP_URL
+  WIKI_MCP_OAUTH_ISSUER, WIKI_MCP_OAUTH_CLIENT_ID, WIKI_MCP_URL, WIKI_MCP_PATH
 EOF
 }
 
@@ -124,7 +124,7 @@ fi
 
 start_daemon "mcp-http" "${VENV_PYTHON}" -m uvicorn "${UV_FLAGS[@]}"
 log_info "Server MCP Streamable HTTPS in ascolto su https://${HOST}:${PORT}"
-log_info "Endpoint MCP: https://${HOST}:${PORT}/mcp"
+log_info "Endpoint MCP: https://${HOST}:${PORT}${WIKI_MCP_PATH:-/mcp}"
 log_info "Health check: https://${HOST}:${PORT}/health"
 log_info "Autenticazione MCP: ${AUTH_MODE}"
 log_info "Ferma con: scripts/stop.sh mcp-http"

@@ -182,10 +182,13 @@ WIKI_MCP_OAUTH_CLIENT_ID=<Gemini application's client ID>
 WIKI_MCP_URL=https://wiki-preview.example.com/mcp
 ```
 
-The public HTTPS endpoint must route both `/mcp` and
-`/.well-known/oauth-protected-resource/mcp` to this instance (also route
-the well-known URL with a trailing slash if that is how the resource URL
-is configured). An unauthenticated request to `/mcp` should return `401`
+When sharing a hostname with a Bearer instance, choose a separate path
+(e.g. `WIKI_MCP_PATH=/oauth/mcp`) and use the matching URL as `WIKI_MCP_URL`
+and the API identifier. Configure the reverse proxy to forward that path
+and `/.well-known/oauth-protected-resource/oauth/mcp` unchanged to the OAuth
+instance, leaving `/mcp/` with the Bearer instance. With the default path
+`/mcp`, the metadata path is `/.well-known/oauth-protected-resource/mcp`.
+If the resource URL ends in a slash, its metadata path also ends in one. An unauthenticated request to `/mcp` should return `401`
 with a `WWW-Authenticate` resource metadata URL. After connecting Gemini,
 verify it can list and read a test page and sees no write tools. Do not
 expose REST remotely. To stop serving OAuth, stop the separate instance;

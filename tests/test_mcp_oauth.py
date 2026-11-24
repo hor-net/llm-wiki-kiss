@@ -78,6 +78,17 @@ def test_discovery_and_no_static_fallback(client):
     assert client.get("/").status_code == 401
 
 
+def test_discovery_for_a_separate_oauth_endpoint(client, tmp_path, monkeypatch):
+    path = "/oauth/mcp"
+    resource = "https://wiki.example" + path
+    monkeypatch.setenv("WIKI_MCP_URL", resource)
+    with TestClient(create_app(wiki_root=tmp_path, mcp_path=path)) as dedicated:
+        challenge = dedicated.post(path, follow_redirects=False)
+        assert challenge.status_code == 401
+        assert f'resource_metadata="https://wiki.example{METADATA_PREFIX}{path}"' in challenge.headers["WWW-Authenticate"]
+        assert dedicated.get(METADATA_PREFIX + path).json()["resource"] == resource
+
+
 def test_real_mcp_rpc_is_read_only(client, signing_key, tmp_path):
     token = _token(signing_key, aud=[RESOURCE, "https://tenant.example/userinfo"])
     result = _rpc(client, token, "initialize", {
