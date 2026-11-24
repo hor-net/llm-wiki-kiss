@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Optional read-only OAuth for MCP HTTPS with a pre-registered Auth0 client
+  (e.g. Gemini). Static Bearer authentication remains the default.
+
 ## [0.4.0]
 
 ### Added

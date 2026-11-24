@@ -66,7 +66,8 @@ Three flavours of access, pick the one you want:
    from your terminal. Great for scripts, cron jobs, and shell power users.
 3. **MCP Streamable HTTPS** — if you want the AI to connect over the
    network (maybe from another machine or a cloud service), turn on TLS +
-   Bearer token authentication. Off by default, enabled with one command.
+   Bearer token authentication. An [optional read-only OAuth mode](CONFIGURATION.md#oauth-for-mcp-https-gemini--auth0)
+   supports pre-registered Auth0 clients such as Gemini. HTTPS is off by default.
 
 That's it. No database to install, no Docker to learn, no cloud account
 to create. If you know how to clone a Git repo and run a shell script,

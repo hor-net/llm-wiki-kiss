@@ -9,6 +9,22 @@ from collections.abc import Collection
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
+def no_store_sender(send: Send) -> Send:
+    async def send_with_headers(message: dict) -> None:
+        if message.get("type") == "http.response.start":
+            headers = list(message.get("headers") or [])
+            headers.extend([
+                (b"cache-control", b"no-store"),
+                (b"pragma", b"no-cache"),
+                (b"referrer-policy", b"no-referrer"),
+                (b"x-content-type-options", b"nosniff"),
+            ])
+            message = {**message, "headers": headers}
+        await send(message)
+
+    return send_with_headers
+
+
 class BearerAuthMiddleware:
     """Protects an ASGI app with a single Bearer token.
 
@@ -38,7 +54,7 @@ class BearerAuthMiddleware:
 
         path = scope.get("path", "")
         if path in self.exempt_paths:
-            await self.app(scope, receive, self._no_store_sender(send))
+            await self.app(scope, receive, no_store_sender(send))
             return
 
         headers = dict(scope.get("headers") or [])
@@ -53,23 +69,7 @@ class BearerAuthMiddleware:
             await self._reject(send, 403, "invalid_bearer_token")
             return
 
-        await self.app(scope, receive, self._no_store_sender(send))
-
-    @staticmethod
-    def _no_store_sender(send: Send):
-        async def send_with_headers(message: dict) -> None:
-            if message.get("type") == "http.response.start":
-                headers = list(message.get("headers") or [])
-                headers.extend([
-                    (b"cache-control", b"no-store"),
-                    (b"pragma", b"no-cache"),
-                    (b"referrer-policy", b"no-referrer"),
-                    (b"x-content-type-options", b"nosniff"),
-                ])
-                message = {**message, "headers": headers}
-            await send(message)
-
-        return send_with_headers
+        await self.app(scope, receive, no_store_sender(send))
 
     @staticmethod
     async def _reject(send: Send, status: int, error: str) -> None:

@@ -12,13 +12,13 @@ ${C_BOLD}Uso:${C_RESET} scripts/start-mcp-http.sh [opzioni]
 
 Avvia il server MCP con trasporto Streamable HTTPS (MCP 2025-06-18).
 The start is allowed only if configure.sh enabled HTTPS and a
-certificate, private key and Bearer token are present.
+certificate, private key and the configured authentication are present.
 
 Opzioni:
   --host HOST           Host di binding (default: 127.0.0.1)
   --port PORT           Porta di ascolto (default: 8766)
   --root PATH           Cartella wiki (default: ./wiki o \$WIKI_ROOT)
-  --token TOKEN         Bearer token obbligatorio (default: \$WIKI_MCP_TOKEN)
+  --token TOKEN         Bearer statico (default: \$WIKI_MCP_TOKEN, ignorato in OAuth)
   --cert PATH           Certificato TLS PEM (default: \$WIKI_TLS_CERT)
   --key PATH            Chiave privata TLS PEM (default: \$WIKI_TLS_KEY)
   --workers N           Worker uvicorn (default: 1).
@@ -28,7 +28,8 @@ Opzioni:
 
 Variabili d'ambiente riconosciute:
   WIKI_ROOT, WIKI_MCP_TOKEN, WIKI_HTTPS_ENABLED, WIKI_HTTP_HOST,
-  WIKI_HTTP_PORT, WIKI_TLS_CERT, WIKI_TLS_KEY
+  WIKI_HTTP_PORT, WIKI_TLS_CERT, WIKI_TLS_KEY, WIKI_MCP_AUTH_MODE,
+  WIKI_MCP_OAUTH_ISSUER, WIKI_MCP_OAUTH_CLIENT_ID, WIKI_MCP_URL
 EOF
 }
 
@@ -89,10 +90,22 @@ fi
 
 export WIKI_ROOT="${ROOT_ARG:-${WIKI_ROOT:-$(detect_wiki_root)}}"
 [[ -n "${TOKEN_ARG}" ]] && export WIKI_MCP_TOKEN="${TOKEN_ARG}"
-if [[ -z "${WIKI_MCP_TOKEN:-}" ]]; then
-  log_error "Bearer token obbligatorio: usa --token o WIKI_MCP_TOKEN."
-  exit 2
-fi
+AUTH_MODE="${WIKI_MCP_AUTH_MODE-bearer}"
+case "${AUTH_MODE}" in
+  bearer)
+    if [[ -z "${WIKI_MCP_TOKEN:-}" ]]; then
+      log_error "Bearer token obbligatorio: usa --token o WIKI_MCP_TOKEN."
+      exit 2
+    fi
+    ;;
+  oauth)
+    if ! "${VENV_PYTHON}" -c 'import mcp_server.http'; then
+      log_error "Configurazione OAuth non valida o dipendenze mancanti."
+      exit 2
+    fi
+    ;;
+  *) log_error "WIKI_MCP_AUTH_MODE must be bearer or oauth."; exit 2 ;;
+esac
 [[ -n "${LOG_LEVEL}" ]] && export WIKI_LOG_LEVEL="${LOG_LEVEL}"
 
 UV_FLAGS=(
@@ -113,5 +126,5 @@ start_daemon "mcp-http" "${VENV_PYTHON}" -m uvicorn "${UV_FLAGS[@]}"
 log_info "Server MCP Streamable HTTPS in ascolto su https://${HOST}:${PORT}"
 log_info "Endpoint MCP: https://${HOST}:${PORT}/mcp"
 log_info "Health check: https://${HOST}:${PORT}/health"
-log_info "Autenticazione Bearer ATTIVA"
+log_info "Autenticazione MCP: ${AUTH_MODE}"
 log_info "Ferma con: scripts/stop.sh mcp-http"

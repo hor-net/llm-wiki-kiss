@@ -143,9 +143,57 @@ Current status:
 scripts/status.sh
 ```
 
+## OAuth for MCP HTTPS (Gemini / Auth0)
+
+Static Bearer remains the default. OAuth is opt-in and replaces static Bearer
+**for that MCP process**. It exposes only `list_pages`, `read_page`, and
+`search`; writing and server prompts are disabled. OAuth users can still read
+**all pages under the configured root**. Use a separate root with approved
+content and a separate HTTPS endpoint for Gemini. Do not switch an existing
+Bearer instance if its clients must keep working. REST, stdio and CLI are not
+changed.
+
+1. Pick the public HTTPS URL (e.g. `https://wiki-preview.example.com/mcp`).
+   Use that exact URL, including the choice of trailing slash, as the API
+   identifier in Auth0, `WIKI_MCP_URL` below, and the server URL in Gemini.
+2. In Auth0, create a custom API with the **Auth0** access token profile
+   (uses the `azp` client claim), **RS256**, and the permission `wiki:read`.
+   Enable RBAC and grant `wiki:read` only to approved users; use a private
+   connection and disable public sign-ups. Enable Auth0's
+   [Resource Parameter Compatibility Profile](https://auth0.com/ai/docs/mcp/guides/resource-param-compatibility-profile)
+   and **Include Issuer in Authorization Responses**, per Auth0's guide.
+3. Create a **Regular Web Application** for Gemini. Add the exact callback
+   shown by Gemini to Allowed Callback URLs, allow Authorization Code with
+   PKCE (S256), and do not enable the Client Credentials grant. Use the
+   token endpoint authentication method the client supports. Put the
+   Client ID and Client Secret in Gemini; the wiki needs only the Client ID.
+
+Set these variables in the dedicated instance's service environment, or
+put the three OAuth-specific variables in its git-ignored `.env` when using
+the scripts. Set `WIKI_MCP_URL` via `configure.sh --url` when using the scripts
+(the managed `.wiki-kiss.env` takes precedence). Configure the separate
+`WIKI_ROOT`, TLS certificate/key and HTTPS enable flag as usual, and install
+the updated dependencies before starting.
+
+```dotenv
+WIKI_MCP_AUTH_MODE=oauth
+WIKI_MCP_OAUTH_ISSUER=https://your-tenant.example.auth0.com/
+WIKI_MCP_OAUTH_CLIENT_ID=<Gemini application's client ID>
+WIKI_MCP_URL=https://wiki-preview.example.com/mcp
+```
+
+The public HTTPS endpoint must route both `/mcp` and
+`/.well-known/oauth-protected-resource/mcp` to this instance (also route
+the well-known URL with a trailing slash if that is how the resource URL
+is configured). An unauthenticated request to `/mcp` should return `401`
+with a `WWW-Authenticate` resource metadata URL. After connecting Gemini,
+verify it can list and read a test page and sees no write tools. Do not
+expose REST remotely. To stop serving OAuth, stop the separate instance;
+no production Bearer configuration needs to change.
+
 ## REST API
 
-The REST API uses the same `WIKI_MCP_TOKEN`, but the `start-rest.sh` script
+The REST API uses `WIKI_MCP_TOKEN`, but the `start-rest.sh` script
 only accepts loopback binding (`127.0.0.1`, `localhost`, `::1`). For remote
 access use MCP HTTPS. REST also stays fail-closed if the token is not
 configured.
