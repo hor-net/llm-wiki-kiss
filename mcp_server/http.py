@@ -34,7 +34,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.routing import Mount, Route
+from starlette.routing import Route
 from starlette.types import Receive, Scope, Send
 
 from wiki_core import WikiStorage, WikiStorageError
@@ -237,7 +237,10 @@ def create_app(
         ])
         middleware = Middleware(OAuthMiddleware, settings=oauth)
     else:
-        routes.append(Mount(mcp_path, app=session_manager.handle_request))
+        resource_path = mcp_path.rstrip("/")
+        endpoint = _McpEndpoint(session_manager)
+        routes.append(Route(resource_path, endpoint))
+        routes.append(Route(resource_path + "/", endpoint))
         middleware = Middleware(BearerAuthMiddleware, expected_token=expected_token)
     return Starlette(lifespan=lifespan, routes=routes, middleware=[middleware])
 
